@@ -9,7 +9,7 @@ namespace ExhaustiveAnalyzer.Tests;
 public sealed class ExhaustiveAnalyzerTests
 {
     [TestMethod]
-    public async Task ReportsMissingValuesInDictionary()
+    public async Task ReportsMissingValuesInDictionaryOnField()
     {
         var expected = Verify
             .Diagnostic()
@@ -33,6 +33,41 @@ public static class Program
 
     [Exhaustive, Test]
     static readonly Dictionary<Color, string> ColorToHex = new() {
+        { Color.Red, ""#FF0000"" }
+    };
+
+    public static void Main()
+    {
+        Console.WriteLine(ColorToHex[Color.Green]);
+    }
+}
+",
+            expected
+        );
+    }
+
+    [TestMethod]
+    public async Task ReportsMissingValuesInDictionaryOnProperty()
+    {
+        var expected = Verify
+            .Diagnostic()
+            .WithSpan(13, 38, 13, 48)
+            .WithArguments("ColorToHex", "Color.Green, Color.Blue");
+
+        await Verify.VerifyAnalyzerAsync(
+            @"
+using System;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class ExhaustiveAttribute : Attribute { }
+
+public static class Program
+{
+    enum Color { Red, Green, Blue, };
+
+    [Exhaustive]
+    static Dictionary<Color, string> ColorToHex { get; set; } = new() {
         { Color.Red, ""#FF0000"" }
     };
 
