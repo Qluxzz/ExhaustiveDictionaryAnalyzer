@@ -31,42 +31,26 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
     {
         var fieldDeclaration = (FieldDeclarationSyntax)context.Node;
 
-        // Check if the field is marked with [Exhaustive]
-        var variable = fieldDeclaration.Declaration.Variables.FirstOrDefault();
-        if (variable == null)
-            return;
-
-        var fieldSymbol = context.SemanticModel.GetDeclaredSymbol(variable) as IFieldSymbol;
-        if (fieldSymbol == null)
-            return;
-
-        if (!HasExhaustiveAttribute(fieldSymbol))
-            return;
-
-        // Ensure the field has an initializer (i.e., " = new Dictionary<Color, string> {...};")
-        if (variable.Initializer == null)
-            return;
-
-        if (variable.Initializer.Value is CollectionExpressionSyntax)
-        {
-            // TODO: report all enum values as missing
-            return;
-        }
-
-        var objectCreation = variable.Initializer.Value as ImplicitObjectCreationExpressionSyntax;
-        if (objectCreation == null)
-            return;
-
-        var typeSymbol =
-            context.SemanticModel.GetTypeInfo(variable.Initializer.Value).Type as INamedTypeSymbol;
-        if (typeSymbol == null)
-            return;
-
-        // Ensure it's a Dictionary<TKey, TValue>
+        // Is not dictionary
         if (
-            !typeSymbol
-                .OriginalDefinition.ToString()
-                .StartsWith("System.Collections.Generic.Dictionary")
+            context
+                .SemanticModel.GetSymbolInfo(fieldDeclaration.Declaration.Type)
+                .Symbol?.OriginalDefinition.ToString()
+            != "System.Collections.Generic.Dictionary<TKey, TValue>"
+        )
+            return;
+
+        // Doesn't have correct attribute
+        if (
+            !fieldDeclaration
+                .AttributeLists.SelectMany(x => x.Attributes)
+                .Any(attribute => attribute.ToString() == "Exhaustive")
+        )
+            return;
+
+        if (
+            context.SemanticModel.GetTypeInfo(fieldDeclaration.Declaration.Type).Type
+            is not INamedTypeSymbol typeSymbol
         )
             return;
 
@@ -75,11 +59,6 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
         if (keyType.TypeKind != TypeKind.Enum)
             return; // Only process dictionaries with enum keys
 
-        // Extract the initializer list (if present)
-        var initializer = objectCreation.Initializer;
-        if (initializer == null)
-            return;
-
         // Get all defined values of the enum
         var enumValues = keyType
             .GetMembers()
@@ -87,14 +66,52 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
             .Where(f => f.HasConstantValue)
             .ToList();
 
+        var variable = fieldDeclaration.Declaration.Variables.FirstOrDefault();
+        if (variable == null)
+            return;
+
+        if (context.SemanticModel.GetDeclaredSymbol(variable) is not IFieldSymbol fieldSymbol)
+            return;
+
+        // Ensure the field has an initializer (i.e., " = new Dictionary<Color, string> {...};")
+        if (
+            variable.Initializer == null
+            || variable.Initializer.Value is CollectionExpressionSyntax
+        )
+        {
+            var diagnostic = Diagnostic.Create(
+                Rule,
+                variable.Identifier.GetLocation(),
+                fieldSymbol.Name,
+                string.Join(", ", enumValues.Select(x => x.OriginalDefinition))
+            );
+            context.ReportDiagnostic(diagnostic);
+            return;
+        }
+
+        if (variable.Initializer.Value is not ImplicitObjectCreationExpressionSyntax objectCreation)
+            return;
+
+        // Extract the initializer list (if present)
+        var initializer = objectCreation.Initializer;
+        if (initializer == null)
+            return;
+
         // Extract explicitly set keys from the initializer
+        // { Key, Value } syntax
         var providedKeys = initializer
-            .Expressions.OfType<InitializerExpressionSyntax>() // Looks for `{ EnumValue, "Value" }`
+            .Expressions.OfType<InitializerExpressionSyntax>()
             .SelectMany(expr => expr.Expressions.OfType<MemberAccessExpressionSyntax>())
+            .Concat(
+                // [Enum.Value] = "Test" syntax
+                initializer
+                    .Expressions.OfType<AssignmentExpressionSyntax>()
+                    .SelectMany(x => ((ImplicitElementAccessSyntax)x.Left).ArgumentList.Arguments)
+                    .Select(arg => arg.Expression)
+            )
             .Select(expr => context.SemanticModel.GetConstantValue(expr))
             .Where(val => val.HasValue)
-            .Select(val => val.Value)
-            .ToImmutableHashSet();
+            .Select(val => val.Value);
 
         // Find missing keys
         var missingKeys = enumValues
@@ -112,14 +129,5 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
             );
             context.ReportDiagnostic(diagnostic);
         }
-    }
-
-    private static bool HasExhaustiveAttribute(IFieldSymbol fieldSymbol)
-    {
-        // Look for the 'Exhaustive' attribute on the field
-        var exhaustiveAttribute = fieldSymbol
-            .GetAttributes()
-            .FirstOrDefault(attr => attr.AttributeClass?.Name == "ExhaustiveAttribute");
-        return exhaustiveAttribute != null;
     }
 }
