@@ -79,7 +79,7 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
                 Rule,
                 variable.Identifier.GetLocation(),
                 fieldSymbol.Name,
-                string.Join(", ", enumValues.Select(x => x.OriginalDefinition))
+                string.Join(", ", enumValues.Select(FormatEnumName))
             );
             context.ReportDiagnostic(diagnostic);
             return;
@@ -112,7 +112,7 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
         // Find missing keys
         var missingKeys = enumValues
             .Where(x => !providedKeys.Contains(x.ConstantValue))
-            .Select(x => x.OriginalDefinition)
+            .Select(FormatEnumName)
             .ToList();
 
         if (missingKeys.Count > 0)
@@ -125,5 +125,12 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
             );
             context.ReportDiagnostic(diagnostic);
         }
+    }
+
+    private static string FormatEnumName(IFieldSymbol enumValue)
+    {
+        var parts = enumValue.OriginalDefinition.ToString().Split('.');
+
+        return string.Join(".", parts[parts.Length - 2], parts[parts.Length - 1]);
     }
 }

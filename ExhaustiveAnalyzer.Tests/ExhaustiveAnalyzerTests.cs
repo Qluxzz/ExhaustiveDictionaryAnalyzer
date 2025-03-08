@@ -14,7 +14,7 @@ public sealed class ExhaustiveAnalyzerTests
         var expected = Verify
             .Diagnostic()
             .WithSpan(16, 47, 16, 57)
-            .WithArguments("ColorToHex", "Program.Color.Green, Program.Color.Blue");
+            .WithArguments("ColorToHex", "Color.Green, Color.Blue");
 
         await Verify.VerifyAnalyzerAsync(
             @"
@@ -52,10 +52,7 @@ public static class Program
         var expected = Verify
             .Diagnostic()
             .WithSpan(13, 47, 13, 57)
-            .WithArguments(
-                "ColorToHex",
-                "Program.Color.Red, Program.Color.Green, Program.Color.Blue"
-            );
+            .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
 
         await Verify.VerifyAnalyzerAsync(
             @"
@@ -88,10 +85,7 @@ public static class Program
         var expected = Verify
             .Diagnostic()
             .WithSpan(13, 47, 13, 57)
-            .WithArguments(
-                "ColorToHex",
-                "Program.Color.Red, Program.Color.Green, Program.Color.Blue"
-            );
+            .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
 
         await Verify.VerifyAnalyzerAsync(
             @"
