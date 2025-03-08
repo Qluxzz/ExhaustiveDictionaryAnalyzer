@@ -1,6 +1,10 @@
-﻿using ExhaustiveAnalyzer.Analyzer;
+﻿namespace ExhaustiveAnalyzer.App;
 
-namespace ExhaustiveAnalyzer.App;
+[AttributeUsage(AttributeTargets.All, Inherited = false, AllowMultiple = true)]
+sealed class ExhaustiveAttribute : Attribute
+{
+    public ExhaustiveAttribute() { }
+}
 
 public static class Program
 {
