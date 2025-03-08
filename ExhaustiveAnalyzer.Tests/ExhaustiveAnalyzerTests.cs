@@ -179,4 +179,32 @@ public static class Program
 "
         );
     }
+
+    [TestMethod]
+    public async Task NoDiagnosticsIfWeDoNotUseTheAttribute()
+    {
+        await Verify.VerifyAnalyzerAsync(
+            @"
+using System;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class ExhaustiveAttribute : Attribute { }
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+
+    static readonly Dictionary<Color, string> ColorToHex = new() {
+        { Color.Red, ""#FF0000"" },
+    };
+
+    public static void Main()
+    {
+        Console.WriteLine(ColorToHex[Color.Green]);
+    }
+}
+"
+        );
+    }
 }
