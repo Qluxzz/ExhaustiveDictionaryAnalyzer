@@ -31,7 +31,6 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
     {
         var fieldDeclaration = (FieldDeclarationSyntax)context.Node;
 
-        // Is not dictionary
         if (
             context
                 .SemanticModel.GetSymbolInfo(fieldDeclaration.Declaration.Type)
@@ -40,7 +39,6 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
         )
             return;
 
-        // Doesn't have correct attribute
         if (
             !fieldDeclaration
                 .AttributeLists.SelectMany(x => x.Attributes)
@@ -59,7 +57,6 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
         if (keyType.TypeKind != TypeKind.Enum)
             return; // Only process dictionaries with enum keys
 
-        // Get all defined values of the enum
         var enumValues = keyType
             .GetMembers()
             .OfType<IFieldSymbol>()
@@ -73,7 +70,6 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
         if (context.SemanticModel.GetDeclaredSymbol(variable) is not IFieldSymbol fieldSymbol)
             return;
 
-        // Ensure the field has an initializer (i.e., " = new Dictionary<Color, string> {...};")
         if (
             variable.Initializer == null
             || variable.Initializer.Value is CollectionExpressionSyntax
