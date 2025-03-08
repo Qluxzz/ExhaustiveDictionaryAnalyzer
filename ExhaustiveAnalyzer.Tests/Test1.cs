@@ -34,7 +34,9 @@ public static class Program
     };
 
     [Exhaustive]
-    static readonly Dictionary<Color, string> ColorToHex = [];
+    static readonly Dictionary<Color, string> ColorToHex = new() {
+        { Color.Red, ""#FF0000"" }
+    };
 
     public static void Main()
     {
