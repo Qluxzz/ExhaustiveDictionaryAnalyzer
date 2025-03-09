@@ -12,7 +12,7 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rule = new DiagnosticDescriptor(
         "DICT002",
         "Dictionary with [Exhaustive] attribute must define values for all Enum keys",
-        "Dictionary '{0}' is missing values: {1}",
+        "Dictionary '{0}' need to define values for the following keys: {1}",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true
