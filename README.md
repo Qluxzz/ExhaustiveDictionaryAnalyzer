@@ -1,6 +1,6 @@
 # Exhaustive Analyzer
 
-Allows you to ensure that dictionaries where the key is an enum type, that all enum values are defined in the dictionary.
+Ensures all enum values are defined in dictionaries with an enum type as the key, when attributed with the `[Exhaustive]` attribute
 
 ## Example:
 
