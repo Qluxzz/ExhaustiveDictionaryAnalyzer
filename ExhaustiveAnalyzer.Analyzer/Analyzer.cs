@@ -10,7 +10,7 @@ namespace ExhaustiveAnalyzer.Analyzer;
 public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
 {
     private static readonly DiagnosticDescriptor Rule = new DiagnosticDescriptor(
-        "DICT002",
+        "EXHAUSTIVEDICT0001",
         "Dictionary with [Exhaustive] attribute must define values for all Enum keys",
         "Dictionary '{0}' need to define values for the following keys: {1}",
         "Usage",
