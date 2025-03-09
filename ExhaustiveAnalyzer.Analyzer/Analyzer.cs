@@ -25,44 +25,56 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
         context.RegisterSyntaxNodeAction(
-            AnalyzeDictionaryInitializerField,
-            SyntaxKind.FieldDeclaration
-        );
-        context.RegisterSyntaxNodeAction(
-            AnalyzeDictionaryInitializerProperty,
+            AnalyzeDictionaryInitializer,
+            SyntaxKind.FieldDeclaration,
             SyntaxKind.PropertyDeclaration
         );
     }
 
-    private static void AnalyzeDictionaryInitializerField(SyntaxNodeAnalysisContext context)
+    private static void AnalyzeDictionaryInitializer(SyntaxNodeAnalysisContext context)
     {
-        var fieldDeclaration = (FieldDeclarationSyntax)context.Node;
+        var node = context.Node;
+        TypeSyntax typeSyntax;
+        SyntaxToken identifier;
+        EqualsValueClauseSyntax? initializer;
+
+        if (node is FieldDeclarationSyntax fieldDeclaration)
+        {
+            typeSyntax = fieldDeclaration.Declaration.Type;
+            identifier = fieldDeclaration.Declaration.Variables.First().Identifier;
+            initializer = fieldDeclaration.Declaration.Variables.First().Initializer;
+        }
+        else if (node is PropertyDeclarationSyntax propertyDeclaration)
+        {
+            typeSyntax = propertyDeclaration.Type;
+            identifier = propertyDeclaration.Identifier;
+            initializer = propertyDeclaration.Initializer;
+        }
+        else
+        {
+            throw new Exception($"Unhandled node type {node.Kind()}");
+        }
 
         if (
-            context
-                .SemanticModel.GetSymbolInfo(fieldDeclaration.Declaration.Type)
-                .Symbol?.OriginalDefinition.ToString()
+            context.SemanticModel.GetSymbolInfo(typeSyntax).Symbol?.OriginalDefinition.ToString()
             != "System.Collections.Generic.Dictionary<TKey, TValue>"
         )
             return;
 
         if (
-            !fieldDeclaration
-                .AttributeLists.SelectMany(x => x.Attributes)
+            !node.ChildNodes()
+                .OfType<AttributeListSyntax>()
+                .SelectMany(x => x.Attributes)
                 .Any(attribute => attribute.ToString() == "Exhaustive")
         )
             return;
 
-        if (
-            context.SemanticModel.GetTypeInfo(fieldDeclaration.Declaration.Type).Type
-            is not INamedTypeSymbol typeSymbol
-        )
+        if (context.SemanticModel.GetTypeInfo(typeSyntax).Type is not INamedTypeSymbol typeSymbol)
             return;
 
-        // Extract the key type (TKey in Dictionary<TKey, TValue>)
         var keyType = typeSymbol.TypeArguments[0];
         if (keyType.TypeKind != TypeKind.Enum)
-            return; // Only process dictionaries with enum keys
+            return;
 
         var enumValues = keyType
             .GetMembers()
@@ -70,44 +82,30 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
             .Where(f => f.HasConstantValue)
             .ToList();
 
-        var variable = fieldDeclaration.Declaration.Variables.FirstOrDefault();
-        if (variable == null)
-            return;
-
-        if (context.SemanticModel.GetDeclaredSymbol(variable) is not IFieldSymbol fieldSymbol)
-            return;
-
-        if (
-            variable.Initializer == null
-            || variable.Initializer.Value is CollectionExpressionSyntax
-        )
+        if (initializer == null || initializer.Value is CollectionExpressionSyntax)
         {
             var diagnostic = Diagnostic.Create(
                 Rule,
-                variable.Identifier.GetLocation(),
-                fieldSymbol.Name,
+                identifier.GetLocation(),
+                identifier.ValueText,
                 string.Join(", ", enumValues.Select(FormatEnumName))
             );
             context.ReportDiagnostic(diagnostic);
             return;
         }
 
-        if (variable.Initializer.Value is not ImplicitObjectCreationExpressionSyntax objectCreation)
+        if (initializer.Value is not ImplicitObjectCreationExpressionSyntax objectCreation)
             return;
 
-        // Extract the initializer list (if present)
-        var initializer = objectCreation.Initializer;
-        if (initializer == null)
+        var initList = objectCreation.Initializer;
+        if (initList == null)
             return;
 
-        // Extract explicitly set keys from the initializer
-        // { Key, Value } syntax
-        var providedKeys = initializer
+        var providedKeys = initList
             .Expressions.OfType<InitializerExpressionSyntax>()
             .SelectMany(expr => expr.Expressions.OfType<MemberAccessExpressionSyntax>())
             .Concat(
-                // [Enum.Value] = "Test" syntax
-                initializer
+                initList
                     .Expressions.OfType<AssignmentExpressionSyntax>()
                     .SelectMany(x => ((ImplicitElementAccessSyntax)x.Left).ArgumentList.Arguments)
                     .Select(arg => arg.Expression)
@@ -116,7 +114,6 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
             .Where(val => val.HasValue)
             .Select(val => val.Value);
 
-        // Find missing keys
         var missingKeys = enumValues
             .Where(x => !providedKeys.Contains(x.ConstantValue))
             .Select(FormatEnumName)
@@ -126,104 +123,8 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
         {
             var diagnostic = Diagnostic.Create(
                 Rule,
-                variable.Identifier.GetLocation(),
-                fieldSymbol.Name,
-                string.Join(", ", missingKeys)
-            );
-            context.ReportDiagnostic(diagnostic);
-        }
-    }
-
-    private static void AnalyzeDictionaryInitializerProperty(SyntaxNodeAnalysisContext context)
-    {
-        var propertyDeclaration = (PropertyDeclarationSyntax)context.Node;
-
-        if (
-            context
-                .SemanticModel.GetSymbolInfo(propertyDeclaration.Type)
-                .Symbol?.OriginalDefinition.ToString()
-            != "System.Collections.Generic.Dictionary<TKey, TValue>"
-        )
-            return;
-
-        if (
-            !propertyDeclaration
-                .AttributeLists.SelectMany(x => x.Attributes)
-                .Any(attribute => attribute.ToString() == "Exhaustive")
-        )
-            return;
-
-        if (
-            context.SemanticModel.GetTypeInfo(propertyDeclaration.Type).Type
-            is not INamedTypeSymbol typeSymbol
-        )
-            return;
-
-        // Extract the key type (TKey in Dictionary<TKey, TValue>)
-        var keyType = typeSymbol.TypeArguments[0];
-        if (keyType.TypeKind != TypeKind.Enum)
-            return; // Only process dictionaries with enum keys
-
-        var enumValues = keyType
-            .GetMembers()
-            .OfType<IFieldSymbol>()
-            .Where(f => f.HasConstantValue)
-            .ToList();
-
-        if (
-            propertyDeclaration.Initializer == null
-            || propertyDeclaration.Initializer.Value is CollectionExpressionSyntax
-        )
-        {
-            var diagnostic = Diagnostic.Create(
-                Rule,
-                propertyDeclaration.Identifier.GetLocation(),
-                propertyDeclaration.Identifier.ValueText,
-                string.Join(", ", enumValues.Select(FormatEnumName))
-            );
-            context.ReportDiagnostic(diagnostic);
-            return;
-        }
-
-        if (
-            propertyDeclaration.Initializer.Value
-            is not ImplicitObjectCreationExpressionSyntax objectCreation
-        )
-            return;
-
-        // Extract the initializer list (if present)
-        var initializer = objectCreation.Initializer;
-        if (initializer == null)
-            return;
-
-        // Extract explicitly set keys from the initializer
-        // { Key, Value } syntax
-        var providedKeys = initializer
-            .Expressions.OfType<InitializerExpressionSyntax>()
-            .SelectMany(expr => expr.Expressions.OfType<MemberAccessExpressionSyntax>())
-            .Concat(
-                // [Enum.Value] = "Test" syntax
-                initializer
-                    .Expressions.OfType<AssignmentExpressionSyntax>()
-                    .SelectMany(x => ((ImplicitElementAccessSyntax)x.Left).ArgumentList.Arguments)
-                    .Select(arg => arg.Expression)
-            )
-            .Select(expr => context.SemanticModel.GetConstantValue(expr))
-            .Where(val => val.HasValue)
-            .Select(val => val.Value);
-
-        // Find missing keys
-        var missingKeys = enumValues
-            .Where(x => !providedKeys.Contains(x.ConstantValue))
-            .Select(FormatEnumName)
-            .ToList();
-
-        if (missingKeys.Count > 0)
-        {
-            var diagnostic = Diagnostic.Create(
-                Rule,
-                propertyDeclaration.Identifier.GetLocation(),
-                propertyDeclaration.Identifier.ValueText,
+                identifier.GetLocation(),
+                identifier.ValueText,
                 string.Join(", ", missingKeys)
             );
             context.ReportDiagnostic(diagnostic);
