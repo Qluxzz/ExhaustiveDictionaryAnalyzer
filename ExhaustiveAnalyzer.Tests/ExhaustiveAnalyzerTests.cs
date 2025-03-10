@@ -12,7 +12,7 @@ public sealed class ExhaustiveAnalyzerTests
     public async Task ReportsMissingValuesInDictionaryOnField()
     {
         var expected = Verify
-            .Diagnostic()
+            .Diagnostic(Analyzer.EnumDictionaryAnalyzer.ExhaustiveRule)
             .WithSpan(16, 47, 16, 57)
             .WithArguments("ColorToHex", "Color.Green, Color.Blue");
 
@@ -50,7 +50,7 @@ public static class Program
     public async Task ReportsMissingValuesInDictionaryOnProperty()
     {
         var expected = Verify
-            .Diagnostic()
+            .Diagnostic(Analyzer.EnumDictionaryAnalyzer.ExhaustiveRule)
             .WithSpan(13, 38, 13, 48)
             .WithArguments("ColorToHex", "Color.Green, Color.Blue");
 
@@ -85,7 +85,7 @@ public static class Program
     public async Task ReportsAllEnumValuesAsMissingWhenUsingEmptyCollectionExpression()
     {
         var expected = Verify
-            .Diagnostic()
+            .Diagnostic(Analyzer.EnumDictionaryAnalyzer.ExhaustiveRule)
             .WithSpan(13, 47, 13, 57)
             .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
 
@@ -118,7 +118,7 @@ public static class Program
     public async Task ReportsAllEnumValuesAsMissingWhenNotInitialized()
     {
         var expected = Verify
-            .Diagnostic()
+            .Diagnostic(Analyzer.EnumDictionaryAnalyzer.ExhaustiveRule)
             .WithSpan(13, 47, 13, 57)
             .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
 
@@ -234,6 +234,44 @@ public static class Program
     }
 }
 "
+        );
+    }
+
+    [TestMethod]
+    public async Task ReportsDuplicatedEnumValues()
+    {
+        var expected = Verify
+            .Diagnostic(Analyzer.EnumDictionaryAnalyzer.DuplicatedEntryRule)
+            .WithSpan(13, 47, 13, 57)
+            .WithArguments("ColorToHex", "Color.Red");
+
+        await Verify.VerifyAnalyzerAsync(
+            @"
+using System;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class ExhaustiveAttribute : Attribute { }
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+
+    [Exhaustive]
+    static readonly Dictionary<Color, string> ColorToHex = new() {
+        { Color.Red, ""#FF0000"" },
+        { Color.Green, ""#008000"" },
+        { Color.Blue, ""#0000FF"" },
+        { Color.Red, ""#FF0000"" },
+    };
+
+    public static void Main()
+    {
+        Console.WriteLine(ColorToHex[Color.Green]);
+    }
+}
+",
+            expected
         );
     }
 }

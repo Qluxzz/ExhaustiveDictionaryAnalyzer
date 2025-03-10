@@ -9,7 +9,7 @@ namespace ExhaustiveAnalyzer.Analyzer;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
 {
-    private static readonly DiagnosticDescriptor Rule = new DiagnosticDescriptor(
+    internal static readonly DiagnosticDescriptor ExhaustiveRule = new DiagnosticDescriptor(
         "EXHAUSTIVEDICT0001",
         "Dictionary with [Exhaustive] attribute must define values for all Enum keys",
         "Dictionary '{0}' need to define values for the following keys: {1}",
@@ -18,7 +18,17 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true
     );
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [Rule];
+    internal static readonly DiagnosticDescriptor DuplicatedEntryRule = new DiagnosticDescriptor(
+        "EXHAUSTIVEDICT0002",
+        "Dictionary with [Exhaustive] attribute must define values for all Enum keys",
+        "Dictionary '{0}' has duplicated values for keys: {1}",
+        "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true
+    );
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
+        [ExhaustiveRule, DuplicatedEntryRule];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -85,7 +95,7 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
         if (initializer == null || initializer.Value is CollectionExpressionSyntax)
         {
             var diagnostic = Diagnostic.Create(
-                Rule,
+                ExhaustiveRule,
                 identifier.GetLocation(),
                 identifier.ValueText,
                 string.Join(", ", enumValues.Select(FormatEnumName))
@@ -112,7 +122,25 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
             )
             .Select(expr => context.SemanticModel.GetConstantValue(expr))
             .Where(val => val.HasValue)
-            .Select(val => val.Value);
+            .Select(val => val.Value)
+            .ToList();
+
+        var duplicatedKeys = enumValues
+            .Where(x => providedKeys.Count(y => y == x.ConstantValue) > 1)
+            .Select(FormatEnumName)
+            .ToList();
+
+        if (duplicatedKeys.Any())
+        {
+            context.ReportDiagnostic(
+                Diagnostic.Create(
+                    DuplicatedEntryRule,
+                    identifier.GetLocation(),
+                    identifier.ValueText,
+                    string.Join(", ", duplicatedKeys)
+                )
+            );
+        }
 
         var missingKeys = enumValues
             .Where(x => !providedKeys.Contains(x.ConstantValue))
@@ -121,13 +149,14 @@ public class EnumDictionaryAnalyzer : DiagnosticAnalyzer
 
         if (missingKeys.Count > 0)
         {
-            var diagnostic = Diagnostic.Create(
-                Rule,
-                identifier.GetLocation(),
-                identifier.ValueText,
-                string.Join(", ", missingKeys)
+            context.ReportDiagnostic(
+                Diagnostic.Create(
+                    ExhaustiveRule,
+                    identifier.GetLocation(),
+                    identifier.ValueText,
+                    string.Join(", ", missingKeys)
+                )
             );
-            context.ReportDiagnostic(diagnostic);
         }
     }
 
