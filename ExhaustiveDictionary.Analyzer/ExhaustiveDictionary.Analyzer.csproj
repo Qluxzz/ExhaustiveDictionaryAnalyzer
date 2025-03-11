@@ -4,10 +4,11 @@
       <TargetFrameworks>netstandard2.0</TargetFrameworks>
       <ImplicitUsings>enable</ImplicitUsings>
       <Nullable>enable</Nullable>
+      <IncludeBuildOutput>false</IncludeBuildOutput>
       <developmentDependency>true</developmentDependency>
       <LangVersion>latest</LangVersion>
       <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-      <PackageId>ExhaustiveDictionary</PackageId>
+      <PackageId>ExhaustiveDictionary.Analyzer</PackageId>
       <Version>1.0.0</Version>
       <Authors>Qluxzz</Authors>
   </PropertyGroup>
