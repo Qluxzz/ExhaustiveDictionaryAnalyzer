@@ -1,4 +1,4 @@
-﻿namespace ExhaustiveAnalyzer.App;
+﻿namespace ExhaustiveDictionary.App;
 
 [AttributeUsage(AttributeTargets.All, Inherited = false, AllowMultiple = true)]
 sealed class ExhaustiveAttribute : Attribute

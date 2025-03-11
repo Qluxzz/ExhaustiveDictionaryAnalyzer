@@ -1,4 +1,4 @@
-namespace ExhaustiveAnalyzer.Analyzer;
+namespace ExhaustiveDictionary.Analyzer;
 
 [AttributeUsage(
     AttributeTargets.Property | AttributeTargets.Field,

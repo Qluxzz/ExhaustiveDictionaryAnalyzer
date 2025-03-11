@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
-namespace ExhaustiveAnalyzer.Analyzer;
+namespace ExhaustiveDictionary.Analyzer;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class EnumDictionaryAnalyzer : DiagnosticAnalyzer

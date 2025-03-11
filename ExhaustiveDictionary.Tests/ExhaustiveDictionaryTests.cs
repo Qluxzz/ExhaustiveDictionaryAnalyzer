@@ -1,12 +1,12 @@
 ﻿using Verify = Microsoft.CodeAnalysis.CSharp.Testing.CSharpAnalyzerVerifier<
-    ExhaustiveAnalyzer.Analyzer.EnumDictionaryAnalyzer,
+    ExhaustiveDictionary.Analyzer.EnumDictionaryAnalyzer,
     Microsoft.CodeAnalysis.Testing.DefaultVerifier
 >;
 
-namespace ExhaustiveAnalyzer.Tests;
+namespace ExhaustiveDictionary.Tests;
 
 [TestClass]
-public sealed class ExhaustiveAnalyzerTests
+public sealed class ExhaustiveDictionaryTests
 {
     [TestMethod]
     public async Task ReportsMissingValuesInDictionaryOnField()

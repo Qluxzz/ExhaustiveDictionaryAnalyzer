@@ -7,6 +7,9 @@
       <developmentDependency>true</developmentDependency>
       <LangVersion>latest</LangVersion>
       <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+      <PackageId>ExhaustiveDictionary</PackageId>
+      <Version>1.0.0</Version>
+      <Authors>Qluxzz</Authors>
   </PropertyGroup>
 
   <ItemGroup>

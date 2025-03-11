@@ -1,4 +1,4 @@
-# Exhaustive Analyzer
+# Exhaustive Dictionary Analyzer
 
 ## Rules:
 
