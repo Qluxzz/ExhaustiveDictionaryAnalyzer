@@ -16,13 +16,10 @@ public static class Program
     };
 
     [Exhaustive]
-    public static readonly Dictionary<Color, string> ColorToHex = new()
-    {
-        { Color.Red, "#FF0000" },
-    };
+    public static readonly List<Color> ColorToHex = new() { Color.Red };
 
     public static void Main()
     {
-        Console.WriteLine(ColorToHex[Color.Green]);
+        Console.WriteLine(ColorToHex);
     }
 }

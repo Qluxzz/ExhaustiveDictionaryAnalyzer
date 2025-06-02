@@ -29,8 +29,17 @@ namespace ExhaustiveDictionary
             isEnabledByDefault: true
         );
 
+        public static readonly DiagnosticDescriptor NotApplicableRule = new DiagnosticDescriptor(
+            "EXHAUSTIVEDICT0003",
+            "This attribute can only be used on a Dictionary where the key is an Enum",
+            messageFormat: "",
+            category: "Usage",
+            DiagnosticSeverity.Warning,
+            isEnabledByDefault: true
+        );
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-            ImmutableArray.Create(ExhaustiveRule, DuplicatedEntryRule);
+            ImmutableArray.Create(ExhaustiveRule, DuplicatedEntryRule, NotApplicableRule);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -68,14 +77,6 @@ namespace ExhaustiveDictionary
             }
 
             if (
-                context
-                    .SemanticModel.GetSymbolInfo(typeSyntax)
-                    .Symbol?.OriginalDefinition.ToString()
-                != "System.Collections.Generic.Dictionary<TKey, TValue>"
-            )
-                return;
-
-            if (
                 !node.ChildNodes()
                     .OfType<AttributeListSyntax>()
                     .SelectMany(x => x.Attributes)
@@ -84,13 +85,31 @@ namespace ExhaustiveDictionary
                 return;
 
             if (
+                context
+                    .SemanticModel.GetSymbolInfo(typeSyntax)
+                    .Symbol?.OriginalDefinition.ToString()
+                != "System.Collections.Generic.Dictionary<TKey, TValue>"
+            )
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.Create(NotApplicableRule, identifier.GetLocation())
+                );
+                return;
+            }
+
+            if (
                 !(context.SemanticModel.GetTypeInfo(typeSyntax).Type is INamedTypeSymbol typeSymbol)
             )
                 return;
 
             var keyType = typeSymbol.TypeArguments[0];
             if (keyType.TypeKind != TypeKind.Enum)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.Create(NotApplicableRule, identifier.GetLocation())
+                );
                 return;
+            }
 
             var enumValues = keyType
                 .GetMembers()
