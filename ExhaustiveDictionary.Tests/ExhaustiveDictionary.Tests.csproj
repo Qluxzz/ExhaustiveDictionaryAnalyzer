@@ -21,7 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ExhaustiveDictionary.Analyzer\ExhaustiveDictionary.Analyzer.csproj" />
+    <ProjectReference Include="..\ExhaustiveDictionary\ExhaustiveDictionary.csproj" />
+    <ProjectReference Include="..\ExhaustiveDictionary.CodeFixes\ExhaustiveDictionary.CodeFixes.csproj" />
   </ItemGroup>
 
 </Project>

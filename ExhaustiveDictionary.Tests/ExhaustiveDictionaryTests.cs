@@ -1,5 +1,5 @@
 ﻿using Verify = Microsoft.CodeAnalysis.CSharp.Testing.CSharpAnalyzerVerifier<
-    ExhaustiveDictionary.Analyzer.EnumDictionaryAnalyzer,
+    ExhaustiveDictionary.EnumDictionaryAnalyzer,
     Microsoft.CodeAnalysis.Testing.DefaultVerifier
 >;
 
@@ -12,7 +12,7 @@ public sealed class ExhaustiveDictionaryTests
     public async Task ReportsMissingValuesInDictionaryOnField()
     {
         var expected = Verify
-            .Diagnostic(Analyzer.EnumDictionaryAnalyzer.ExhaustiveRule)
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
             .WithSpan(16, 47, 16, 57)
             .WithArguments("ColorToHex", "Color.Green, Color.Blue");
 
@@ -50,7 +50,7 @@ public static class Program
     public async Task ReportsMissingValuesInDictionaryOnProperty()
     {
         var expected = Verify
-            .Diagnostic(Analyzer.EnumDictionaryAnalyzer.ExhaustiveRule)
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
             .WithSpan(13, 38, 13, 48)
             .WithArguments("ColorToHex", "Color.Green, Color.Blue");
 
@@ -85,7 +85,7 @@ public static class Program
     public async Task ReportsAllEnumValuesAsMissingWhenUsingEmptyCollectionExpression()
     {
         var expected = Verify
-            .Diagnostic(Analyzer.EnumDictionaryAnalyzer.ExhaustiveRule)
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
             .WithSpan(13, 47, 13, 57)
             .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
 
@@ -118,7 +118,7 @@ public static class Program
     public async Task ReportsAllEnumValuesAsMissingWhenNotInitialized()
     {
         var expected = Verify
-            .Diagnostic(Analyzer.EnumDictionaryAnalyzer.ExhaustiveRule)
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
             .WithSpan(13, 47, 13, 57)
             .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
 
@@ -241,7 +241,7 @@ public static class Program
     public async Task ReportsDuplicatedEnumValues()
     {
         var expected = Verify
-            .Diagnostic(Analyzer.EnumDictionaryAnalyzer.DuplicatedEntryRule)
+            .Diagnostic(EnumDictionaryAnalyzer.DuplicatedEntryRule)
             .WithSpan(13, 47, 13, 57)
             .WithArguments("ColorToHex", "Color.Red");
 

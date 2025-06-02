@@ -1,8 +1,14 @@
 ﻿namespace ExhaustiveDictionary.App;
 
+[AttributeUsage(AttributeTargets.All, Inherited = false, AllowMultiple = true)]
+sealed class ExhaustiveAttribute : Attribute
+{
+    public ExhaustiveAttribute() { }
+}
+
 public static class Program
 {
-    enum Color
+    public enum Color
     {
         Red,
         Green,
@@ -10,7 +16,10 @@ public static class Program
     };
 
     [Exhaustive]
-    static readonly Dictionary<Color, string> ColorToHex = new() { { Color.Red, "#FF0000" } };
+    public static readonly Dictionary<Color, string> ColorToHex = new()
+    {
+        { Color.Red, "#FF0000" },
+    };
 
     public static void Main()
     {

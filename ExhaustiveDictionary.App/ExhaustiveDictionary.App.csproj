@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
  <ItemGroup>
-    <ProjectReference Include="..\ExhaustiveDictionary.Analyzer\ExhaustiveDictionary.Analyzer.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" OutputItemType="Analyzer" SetTargetFramework="TargetFramework=netstandard2.0" />
-    <ProjectReference Include="..\ExhaustiveDictionary\ExhaustiveDictionary.csproj" />
+    <ProjectReference Include="..\ExhaustiveDictionary\ExhaustiveDictionary.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" OutputItemType="Analyzer" SetTargetFramework="TargetFramework=netstandard2.0" />
+    <ProjectReference Include="..\ExhaustiveDictionary.CodeFixes\ExhaustiveDictionary.CodeFixes.csproj" PrivateAssets="all" ReferenceOutputAssembly="false" OutputItemType="Analyzer" SetTargetFramework="TargetFramework=netstandard2.0" />
   </ItemGroup>
 
 </Project>
