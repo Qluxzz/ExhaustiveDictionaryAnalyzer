@@ -1,5 +1,6 @@
-﻿using Verify = Microsoft.CodeAnalysis.CSharp.Testing.CSharpAnalyzerVerifier<
+﻿using Verify = Microsoft.CodeAnalysis.CSharp.Testing.CSharpCodeFixVerifier<
     ExhaustiveDictionary.EnumDictionaryAnalyzer,
+    ExhaustiveDictionary.AddMissingEnumValuesCodeFixProvider,
     Microsoft.CodeAnalysis.Testing.DefaultVerifier
 >;
 
@@ -35,11 +36,6 @@ public static class Program
     static readonly Dictionary<Color, string> ColorToHex = new() {
         { Color.Red, ""#FF0000"" }
     };
-
-    public static void Main()
-    {
-        Console.WriteLine(ColorToHex[Color.Green]);
-    }
 }
 ",
             expected
@@ -67,14 +63,9 @@ public static class Program
     enum Color { Red, Green, Blue, };
 
     [Exhaustive]
-    static Dictionary<Color, string> ColorToHex { get; set; } = new() {
+    static Dictionary<Color, string> ColorToHex = new() {
         { Color.Red, ""#FF0000"" }
     };
-
-    public static void Main()
-    {
-        Console.WriteLine(ColorToHex[Color.Green]);
-    }
 }
 ",
             expected
@@ -103,11 +94,6 @@ public static class Program
 
     [Exhaustive]
     static readonly Dictionary<Color, string> ColorToHex = [];
-
-    public static void Main()
-    {
-        Console.WriteLine(ColorToHex[Color.Green]);
-    }
 }
 ",
             expected
@@ -136,11 +122,6 @@ public static class Program
 
     [Exhaustive]
     static readonly Dictionary<Color, string> ColorToHex;
-
-    public static void Main()
-    {
-        Console.WriteLine(ColorToHex[Color.Green]);
-    }
 }
 ",
             expected
@@ -168,11 +149,6 @@ public static class Program
         [Color.Green] = ""#008000"",
         [Color.Blue] = ""#0000FF""
     };
-
-    public static void Main()
-    {
-        Console.WriteLine(ColorToHex[Color.Green]);
-    }
 }
 "
         );
@@ -199,11 +175,6 @@ public static class Program
         { Color.Green, ""#008000"" },
         { Color.Blue, ""#0000FF"" }
     };
-
-    public static void Main()
-    {
-        Console.WriteLine(ColorToHex[Color.Green]);
-    }
 }
 "
         );
@@ -227,11 +198,6 @@ public static class Program
     static readonly Dictionary<Color, string> ColorToHex = new() {
         { Color.Red, ""#FF0000"" },
     };
-
-    public static void Main()
-    {
-        Console.WriteLine(ColorToHex[Color.Green]);
-    }
 }
 "
         );
@@ -264,14 +230,137 @@ public static class Program
         { Color.Blue, ""#0000FF"" },
         { Color.Red, ""#FF0000"" },
     };
-
-    public static void Main()
-    {
-        Console.WriteLine(ColorToHex[Color.Green]);
-    }
 }
 ",
             expected
+        );
+    }
+
+    [TestMethod]
+    public async Task ReportsErrorIfAttributeUsedOnNotADictionary()
+    {
+        var expected = Verify
+            .Diagnostic(EnumDictionaryAnalyzer.NotApplicableRule)
+            .WithSpan(13, 24, 13, 34);
+
+        await Verify.VerifyAnalyzerAsync(
+            @"
+using System;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class ExhaustiveAttribute : Attribute { }
+
+public static class Program
+{
+    enum Color { Red, Green, Blue, };
+
+    [Exhaustive]
+    static List<Color> ColorToHex = new() {
+        Color.Red
+    };
+}
+",
+            expected
+        );
+    }
+
+    [TestMethod]
+    public async Task ReportsErrorIfAttributeUsedOnDictionaryWithNoEnumAsKey()
+    {
+        var expected = Verify
+            .Diagnostic(EnumDictionaryAnalyzer.NotApplicableRule)
+            .WithSpan(13, 38, 13, 48);
+
+        await Verify.VerifyAnalyzerAsync(
+            @"
+using System;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class ExhaustiveAttribute : Attribute { }
+
+public static class Program
+{
+    enum Color { Red, Green, Blue, };
+
+    [Exhaustive]
+    static Dictionary<string, Color> ColorToHex = new() {
+        { ""Red"", Color.Red }
+    };
+}
+",
+            expected
+        );
+    }
+
+    [TestMethod]
+    public async Task ReportsErrorIfAttributeUsedOnDictionaryWithNoEnumAsKey2()
+    {
+        var expected = Verify
+            .Diagnostic(EnumDictionaryAnalyzer.NotApplicableRule)
+            .WithSpan(11, 36, 11, 46);
+
+        await Verify.VerifyAnalyzerAsync(
+            @"
+using System;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class ExhaustiveAttribute : Attribute { }
+
+public static class Program
+{
+    [Exhaustive]
+    static Dictionary<int, string> ColorToHex = new() {
+        { 10, ""hello"" }
+    };
+}
+",
+            expected
+        );
+    }
+
+    [TestMethod]
+    public async Task AddsMissingEnumValuesWhenUsingCodeFix()
+    {
+        var expected = Verify
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
+            .WithSpan(13, 38, 13, 48)
+            .WithArguments("ColorToHex", "Color.Green, Color.Blue");
+
+        await Verify.VerifyCodeFixAsync(
+            @"
+using System;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class ExhaustiveAttribute : Attribute { }
+
+public static class Program
+{
+    enum Color { Red, Green, Blue, };
+
+    [Exhaustive]
+    static Dictionary<Color, string> ColorToHex = new() { { Color.Red, ""#FF0000"" } };
+}
+",
+            expected,
+            @"
+using System;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class ExhaustiveAttribute : Attribute { }
+
+public static class Program
+{
+    enum Color { Red, Green, Blue, };
+
+    [Exhaustive]
+    static Dictionary<Color, string> ColorToHex = new() { { Color.Red, ""#FF0000"" }, { Color.Green, """" }, { Color.Blue, """" } };
+}
+"
         );
     }
 }

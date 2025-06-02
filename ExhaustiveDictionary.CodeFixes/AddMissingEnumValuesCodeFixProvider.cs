@@ -1,4 +1,6 @@
-﻿using System.Collections.Immutable;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Composition;
 using System.Linq;
 using System.Threading;
@@ -9,7 +11,6 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Formatting;
-using Microsoft.CodeAnalysis.Simplification;
 
 namespace ExhaustiveDictionary
 {
@@ -39,111 +40,161 @@ namespace ExhaustiveDictionary
                 .Document.GetSyntaxRootAsync(context.CancellationToken)
                 .ConfigureAwait(false);
 
-            // TODO: Replace the following code with your own analysis, generating a CodeAction for each fix to suggest
             var diagnostic = context.Diagnostics.First();
+
             var diagnosticSpan = diagnostic.Location.SourceSpan;
 
             // Find the type declaration identified by the diagnostic.
             var declaration = root.FindToken(diagnosticSpan.Start)
                 .Parent.AncestorsAndSelf()
-                .OfType<LocalDeclarationStatementSyntax>()
+                .Where(x => x is FieldDeclarationSyntax || x is PropertyDeclarationSyntax)
                 .First();
+
+            if (declaration is null)
+                return;
 
             // Register a code action that will invoke the fix.
             context.RegisterCodeFix(
                 CodeAction.Create(
-                    title: "Add missing enum values",
-                    createChangedDocument: c => MakeConstAsync(context.Document, declaration, c),
-                    equivalenceKey: "Add missing enum values"
+                    title: "Add missing values from enum",
+                    createChangedDocument: c =>
+                        AddMissingEnumValuesAsync(
+                            context.Document,
+                            declaration,
+                            context.CancellationToken
+                        ),
+                    equivalenceKey: "Add missing values from enum"
                 ),
                 diagnostic
             );
         }
 
-        private static async Task<Document> MakeConstAsync(
+        private static async Task<Document> AddMissingEnumValuesAsync(
             Document document,
-            LocalDeclarationStatementSyntax localDeclaration,
+            SyntaxNode node,
             CancellationToken cancellationToken
         )
         {
-            // Remove the leading trivia from the local declaration.
-            SyntaxToken firstToken = localDeclaration.GetFirstToken();
-            SyntaxTriviaList leadingTrivia = firstToken.LeadingTrivia;
-            LocalDeclarationStatementSyntax trimmedLocal = localDeclaration.ReplaceToken(
-                firstToken,
-                firstToken.WithLeadingTrivia(SyntaxTriviaList.Empty)
-            );
+            var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
 
-            // Create a const token with the leading trivia.
-            SyntaxToken constToken = SyntaxFactory.Token(
-                leadingTrivia,
-                SyntaxKind.ConstKeyword,
-                SyntaxFactory.TriviaList(SyntaxFactory.ElasticMarker)
-            );
+            TypeSyntax typeSyntax;
+            SyntaxToken identifier;
+            EqualsValueClauseSyntax initializer;
 
-            // Insert the const token into the modifiers list, creating a new modifiers list.
-            SyntaxTokenList newModifiers = trimmedLocal.Modifiers.Insert(0, constToken);
-
-            // If the type of the declaration is 'var', create a new type name
-            // for the inferred type.
-            VariableDeclarationSyntax variableDeclaration = localDeclaration.Declaration;
-            TypeSyntax variableTypeName = variableDeclaration.Type;
-            if (variableTypeName.IsVar)
+            if (node is FieldDeclarationSyntax fieldDeclaration)
             {
-                SemanticModel semanticModel = await document
-                    .GetSemanticModelAsync(cancellationToken)
-                    .ConfigureAwait(false);
-
-                // Special case: Ensure that 'var' isn't actually an alias to another type
-                // (e.g. using var = System.String).
-                IAliasSymbol aliasInfo = semanticModel.GetAliasInfo(
-                    variableTypeName,
-                    cancellationToken
-                );
-                if (aliasInfo == null)
-                {
-                    // Retrieve the type inferred for var.
-                    ITypeSymbol type = semanticModel
-                        .GetTypeInfo(variableTypeName, cancellationToken)
-                        .ConvertedType;
-
-                    // Special case: Ensure that 'var' isn't actually a type named 'var'.
-                    if (type.Name != "var")
-                    {
-                        // Create a new TypeSyntax for the inferred type. Be careful
-                        // to keep any leading and trailing trivia from the var keyword.
-                        TypeSyntax typeName = SyntaxFactory
-                            .ParseTypeName(type.ToDisplayString())
-                            .WithLeadingTrivia(variableTypeName.GetLeadingTrivia())
-                            .WithTrailingTrivia(variableTypeName.GetTrailingTrivia());
-
-                        // Add an annotation to simplify the type name.
-                        TypeSyntax simplifiedTypeName = typeName.WithAdditionalAnnotations(
-                            Simplifier.Annotation
-                        );
-
-                        // Replace the type in the variable declaration.
-                        variableDeclaration = variableDeclaration.WithType(simplifiedTypeName);
-                    }
-                }
+                typeSyntax = fieldDeclaration.Declaration.Type;
+                identifier = fieldDeclaration.Declaration.Variables.First().Identifier;
+                initializer = fieldDeclaration.Declaration.Variables.First().Initializer;
             }
-            // Produce the new local declaration.
-            LocalDeclarationStatementSyntax newLocal = trimmedLocal
-                .WithModifiers(newModifiers)
-                .WithDeclaration(variableDeclaration);
+            else if (node is PropertyDeclarationSyntax propertyDeclaration)
+            {
+                typeSyntax = propertyDeclaration.Type;
+                identifier = propertyDeclaration.Identifier;
+                initializer = propertyDeclaration.Initializer;
+            }
+            else
+            {
+                throw new Exception($"Unhandled node type {node.Kind()}");
+            }
 
-            // Add an annotation to format the new local declaration.
-            LocalDeclarationStatementSyntax formattedLocal = newLocal.WithAdditionalAnnotations(
-                Formatter.Annotation
+            if (!(semanticModel.GetTypeInfo(typeSyntax).Type is INamedTypeSymbol typeSymbol))
+                throw new Exception();
+
+            var enumValues = typeSymbol
+                .TypeArguments[0]
+                .GetMembers()
+                .OfType<IFieldSymbol>()
+                .Where(f => f.HasConstantValue)
+                .ToList();
+
+            if (initializer == null || initializer.Value is CollectionExpressionSyntax)
+            {
+                return document;
+            }
+
+            if (!(initializer.Value is ImplicitObjectCreationExpressionSyntax objectCreation))
+                return document;
+
+            var initList = objectCreation.Initializer;
+            if (initList == null)
+                return document;
+
+            var providedKeys = initList
+                .Expressions.OfType<InitializerExpressionSyntax>()
+                .SelectMany(expr => expr.Expressions.OfType<MemberAccessExpressionSyntax>())
+                .Concat(
+                    initList
+                        .Expressions.OfType<AssignmentExpressionSyntax>()
+                        .SelectMany(x =>
+                            ((ImplicitElementAccessSyntax)x.Left).ArgumentList.Arguments
+                        )
+                        .Select(arg => arg.Expression)
+                )
+                .Select(expr => semanticModel.GetConstantValue(expr))
+                .Where(val => val.HasValue)
+                .Select(val => val.Value)
+                .ToList();
+
+            var missingKeys = enumValues
+                .Where(x => !providedKeys.Contains(x.ConstantValue))
+                .ToList();
+
+            return await AddMissingEnumValues(document, initializer, missingKeys);
+        }
+
+        private static async Task<Document> AddMissingEnumValues(
+            Document document,
+            EqualsValueClauseSyntax equalsValueClause,
+            List<IFieldSymbol> missingEnumValues
+        )
+        {
+            var semanticModel = await document.GetSemanticModelAsync().ConfigureAwait(false);
+            if (semanticModel == null)
+                return document;
+
+            if (
+                !(
+                    equalsValueClause.Value
+                    is ImplicitObjectCreationExpressionSyntax implicitCreation
+                )
+            )
+                return document;
+
+            var initializer = implicitCreation.Initializer;
+            if (initializer == null)
+                return document;
+
+            var newEntries = missingEnumValues.Select(field =>
+                SyntaxFactory.InitializerExpression(
+                    SyntaxKind.ComplexElementInitializerExpression,
+                    SyntaxFactory.SeparatedList<ExpressionSyntax>(
+                        new SyntaxNodeOrToken[]
+                        {
+                            SyntaxFactory.MemberAccessExpression(
+                                SyntaxKind.SimpleMemberAccessExpression,
+                                SyntaxFactory.IdentifierName(field.ContainingType.Name),
+                                SyntaxFactory.IdentifierName(field.Name)
+                            ),
+                            SyntaxFactory.Token(SyntaxKind.CommaToken),
+                            SyntaxFactory.LiteralExpression(
+                                SyntaxKind.StringLiteralExpression,
+                                SyntaxFactory.Literal("")
+                            ),
+                        }
+                    )
+                )
             );
 
-            // Replace the old local declaration with the new local declaration.
-            SyntaxNode oldRoot = await document
-                .GetSyntaxRootAsync(cancellationToken)
-                .ConfigureAwait(false);
-            SyntaxNode newRoot = oldRoot.ReplaceNode(localDeclaration, formattedLocal);
+            var updatedInitializer = initializer.WithExpressions(
+                initializer.Expressions.AddRange(newEntries)
+            );
+            var updatedCreation = implicitCreation.WithInitializer(updatedInitializer);
+            var updatedEqualsValue = equalsValueClause.WithValue(updatedCreation);
 
-            // Return document with transformed tree.
+            var root = await document.GetSyntaxRootAsync().ConfigureAwait(false);
+            var newRoot = root.ReplaceNode(equalsValueClause, updatedEqualsValue);
+
             return document.WithSyntaxRoot(newRoot);
         }
     }
