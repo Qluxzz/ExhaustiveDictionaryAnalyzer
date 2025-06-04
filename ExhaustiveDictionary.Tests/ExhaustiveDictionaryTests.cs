@@ -363,4 +363,47 @@ public static class Program
 "
         );
     }
+
+    [TestMethod]
+    public async Task AddsMissingEnumValuesUsingSameFormatWhenUsingCodeFix()
+    {
+        var expected = Verify
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
+            .WithSpan(13, 38, 13, 48)
+            .WithArguments("ColorToHex", "Color.Green, Color.Blue");
+
+        await Verify.VerifyCodeFixAsync(
+            @"
+using System;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class ExhaustiveAttribute : Attribute { }
+
+public static class Program
+{
+    enum Color { Red, Green, Blue, };
+
+    [Exhaustive]
+    static Dictionary<Color, string> ColorToHex = new() { [Color.Red] = ""#FF0000"" };
+}
+",
+            expected,
+            @"
+using System;
+using System.Collections.Generic;
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class ExhaustiveAttribute : Attribute { }
+
+public static class Program
+{
+    enum Color { Red, Green, Blue, };
+
+    [Exhaustive]
+    static Dictionary<Color, string> ColorToHex = new() { [Color.Red] = ""#FF0000"", [Color.Green] = """", [Color.Blue] = """" };
+}
+"
+        );
+    }
 }
