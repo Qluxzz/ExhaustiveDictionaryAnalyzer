@@ -31,8 +31,8 @@ namespace ExhaustiveDictionary
 
         public static readonly DiagnosticDescriptor NotApplicableRule = new DiagnosticDescriptor(
             "EXHAUSTIVEDICT0003",
-            "This attribute can only be used on a Dictionary where the key is an Enum",
-            messageFormat: "",
+            "The [Exhaustive] attribute can only be used on a Dictionary where the key is an Enum",
+            messageFormat: "The [Exhaustive] attribute can only be used on a Dictionary where the key is an Enum",
             category: "Usage",
             DiagnosticSeverity.Warning,
             isEnabledByDefault: true

@@ -16,7 +16,7 @@ public static class Program
     };
 
     [Exhaustive]
-    public static readonly List<Color> ColorToHex = new() { Color.Red };
+    public static readonly Dictionary<Color, string> ColorToHex = new() { { Color.Red, "red" } };
 
     public static void Main()
     {
