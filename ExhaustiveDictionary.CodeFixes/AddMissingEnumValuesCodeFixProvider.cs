@@ -149,10 +149,6 @@ namespace ExhaustiveDictionary
             List<IFieldSymbol> missingEnumValues
         )
         {
-            var semanticModel = await document.GetSemanticModelAsync().ConfigureAwait(false);
-            if (semanticModel == null)
-                return document;
-
             if (
                 !(
                     equalsValueClause.Value
@@ -165,26 +161,54 @@ namespace ExhaustiveDictionary
             if (initializer == null)
                 return document;
 
+            var useIndexerStyle =
+                initializer.Expressions.FirstOrDefault() is AssignmentExpressionSyntax;
+
             var newEntries = missingEnumValues.Select(field =>
-                SyntaxFactory.InitializerExpression(
-                    SyntaxKind.ComplexElementInitializerExpression,
-                    SyntaxFactory.SeparatedList<ExpressionSyntax>(
-                        new SyntaxNodeOrToken[]
-                        {
-                            SyntaxFactory.MemberAccessExpression(
-                                SyntaxKind.SimpleMemberAccessExpression,
-                                SyntaxFactory.IdentifierName(field.ContainingType.Name),
-                                SyntaxFactory.IdentifierName(field.Name)
+            {
+                var keyExpression = SyntaxFactory.MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    SyntaxFactory.IdentifierName(field.ContainingType.Name),
+                    SyntaxFactory.IdentifierName(field.Name)
+                );
+
+                var valueExpression = SyntaxFactory.LiteralExpression(
+                    SyntaxKind.StringLiteralExpression,
+                    SyntaxFactory.Literal("")
+                );
+
+                if (useIndexerStyle)
+                {
+                    // [Color.Red] = "red"
+                    return (ExpressionSyntax)
+                        SyntaxFactory.AssignmentExpression(
+                            SyntaxKind.SimpleAssignmentExpression,
+                            SyntaxFactory.ImplicitElementAccess(
+                                SyntaxFactory.BracketedArgumentList(
+                                    SyntaxFactory.SingletonSeparatedList(
+                                        SyntaxFactory.Argument(keyExpression)
+                                    )
+                                )
                             ),
-                            SyntaxFactory.Token(SyntaxKind.CommaToken),
-                            SyntaxFactory.LiteralExpression(
-                                SyntaxKind.StringLiteralExpression,
-                                SyntaxFactory.Literal("")
-                            ),
-                        }
-                    )
-                )
-            );
+                            valueExpression
+                        );
+                }
+                else
+                {
+                    // { Color.Red, "red" }
+                    return SyntaxFactory.InitializerExpression(
+                        SyntaxKind.ComplexElementInitializerExpression,
+                        SyntaxFactory.SeparatedList<ExpressionSyntax>(
+                            new SyntaxNodeOrToken[]
+                            {
+                                keyExpression,
+                                SyntaxFactory.Token(SyntaxKind.CommaToken),
+                                valueExpression,
+                            }
+                        )
+                    );
+                }
+            });
 
             var updatedInitializer = initializer.WithExpressions(
                 initializer.Expressions.AddRange(newEntries)
