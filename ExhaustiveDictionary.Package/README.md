@@ -1,6 +1,6 @@
 # Exhaustive Dictionary Analyzer
 
-Install the `ExhaustiveDictionary.Attribute` nuget package to get access to the `[Exhaustive]` attribute, or just create your own attribute `ExhaustiveAttribute : System.Attribute {}`
+Install the `ExhaustiveDictionary.Attribute` nuget package to get access to the `[Exhaustive]` attribute.
 
 ## Rules:
 
