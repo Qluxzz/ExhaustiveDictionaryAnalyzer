@@ -1,40 +1,8 @@
-# Exhaustive Dictionary Analyzer
+# Exhaustive Dictionary Analyzer in C#
 
-## Rules:
+Install `ExhaustiveDictionary.Analyzer` and `ExhaustiveDictionary.Attribute` and place a `[Exhaustive]` attribute on an `Dictionary<TEnum, T>` to get exhaustive checks that you have added all members of the enum to the dictionary
 
-### EXHAUSTIVEDICT0001
-
-Ensures all enum values are defined in dictionaries with an enum type as the key, when attributed with the `[Exhaustive]` attribute
-
-```csharp
-enum Color { Red, Green, Blue };
-
-[Exhaustive]
-Dictionary<Color, string> ColorToHex = new() {
-    { Color.Red, "#FF0000" }
-};
-```
-
-Here the rule will complain because we have forgotten to add a value for `Color.Green` and `Color.Blue` to the dictionary
-
-### EXHAUSTIVEDICT0002
-
-Ensure only one value per enum key is defined in the dictionary
-
-```csharp
-enum Color { Red, Green, Blue };
-
-[Exhaustive]
-Dictionary<Color, string> ColorToHex = new() {
-    { Color.Red, "#FF0000" },
-    { Color.Green, "#008000" },
-    { Color.Blue, "#0000FF" },
-    { Color.Red, "#FF0000" },
-};
-```
-
-Here the rule will complain because we have added `Color.Red` twice
-
-### EXHAUSTIVEDICT0003
-
-Attribute was placed on invalid object, it can only be used on a Dictionary where the key is an Enum.
+| Package                                                                                         | Version                                                                                                                                      |
+| ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| [ExhaustiveDictionary.Analyzer](https://www.nuget.org/packages/ExhaustiveDictionary.Analyzer)   | [![NuGet](https://img.shields.io/nuget/v/ExhaustiveDictionary.Analyzer.svg)](https://www.nuget.org/packages/ExhaustiveDictionary.Analyzer)   |
+| [ExhaustiveDictionary.Attribute](https://www.nuget.org/packages/ExhaustiveDictionary.Attribute) | [![NuGet](https://img.shields.io/nuget/v/ExhaustiveDictionary.Attribute.svg)](https://www.nuget.org/packages/ExhaustiveDictionary.Attribute) |
