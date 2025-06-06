@@ -2,8 +2,6 @@
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExhaustiveDictionary.App", "ExhaustiveDictionary.App\ExhaustiveDictionary.App.csproj", "{1A237CB2-944A-4124-860F-03EB4CC1F10A}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExhaustiveDictionary.Tests", "ExhaustiveDictionary.Tests\ExhaustiveDictionary.Tests.csproj", "{FE24AD8F-B5FB-4A62-A1F0-CC016C273200}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExhaustiveDictionary", "ExhaustiveDictionary\ExhaustiveDictionary.csproj", "{B734F286-FFA6-409C-A700-925D1E59A076}"
@@ -28,18 +26,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1A237CB2-944A-4124-860F-03EB4CC1F10A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1A237CB2-944A-4124-860F-03EB4CC1F10A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1A237CB2-944A-4124-860F-03EB4CC1F10A}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{1A237CB2-944A-4124-860F-03EB4CC1F10A}.Debug|x64.Build.0 = Debug|Any CPU
-		{1A237CB2-944A-4124-860F-03EB4CC1F10A}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{1A237CB2-944A-4124-860F-03EB4CC1F10A}.Debug|x86.Build.0 = Debug|Any CPU
-		{1A237CB2-944A-4124-860F-03EB4CC1F10A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1A237CB2-944A-4124-860F-03EB4CC1F10A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1A237CB2-944A-4124-860F-03EB4CC1F10A}.Release|x64.ActiveCfg = Release|Any CPU
-		{1A237CB2-944A-4124-860F-03EB4CC1F10A}.Release|x64.Build.0 = Release|Any CPU
-		{1A237CB2-944A-4124-860F-03EB4CC1F10A}.Release|x86.ActiveCfg = Release|Any CPU
-		{1A237CB2-944A-4124-860F-03EB4CC1F10A}.Release|x86.Build.0 = Release|Any CPU
 		{FE24AD8F-B5FB-4A62-A1F0-CC016C273200}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FE24AD8F-B5FB-4A62-A1F0-CC016C273200}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FE24AD8F-B5FB-4A62-A1F0-CC016C273200}.Debug|x64.ActiveCfg = Debug|Any CPU
