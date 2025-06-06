@@ -1,4 +1,6 @@
-﻿using Verify = Microsoft.CodeAnalysis.CSharp.Testing.CSharpCodeFixVerifier<
+﻿using Microsoft.CodeAnalysis.CSharp.Testing;
+using Microsoft.CodeAnalysis.Testing;
+using Verify = Microsoft.CodeAnalysis.CSharp.Testing.CSharpCodeFixVerifier<
     ExhaustiveDictionary.EnumDictionaryAnalyzer,
     ExhaustiveDictionary.AddMissingEnumValuesCodeFixProvider,
     Microsoft.CodeAnalysis.Testing.DefaultVerifier
@@ -9,21 +11,57 @@ namespace ExhaustiveDictionary.Tests;
 [TestClass]
 public sealed class ExhaustiveDictionaryTests
 {
+    private static async Task TestAnalyzer(string code, params DiagnosticResult[] diagnostics)
+    {
+        var a = new CSharpAnalyzerTest<EnumDictionaryAnalyzer, DefaultVerifier>
+        {
+            TestCode = code,
+            ReferenceAssemblies = ReferenceAssemblies.Default.AddPackages(
+                [new PackageIdentity("ExhaustiveDictionary.Attribute", "1.0.0")]
+            ),
+        };
+
+        if (diagnostics.Length > 0)
+        {
+            a.TestState.ExpectedDiagnostics.AddRange(diagnostics);
+        }
+
+        await a.RunAsync(CancellationToken.None);
+    }
+
+    private static async Task TestCodeFix(string before, DiagnosticResult diagnostic, string after)
+    {
+        var a = new CSharpCodeFixTest<
+            EnumDictionaryAnalyzer,
+            AddMissingEnumValuesCodeFixProvider,
+            DefaultVerifier
+        >
+        {
+            ReferenceAssemblies = ReferenceAssemblies.Default.AddPackages(
+                [new PackageIdentity("ExhaustiveDictionary.Attribute", "1.0.0")]
+            ),
+            TestCode = before,
+            FixedCode = after,
+        };
+
+        a.TestState.ExpectedDiagnostics.AddRange(diagnostic);
+
+        await a.RunAsync(CancellationToken.None);
+    }
+
     [TestMethod]
     public async Task ReportsMissingValuesInDictionaryOnField()
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(16, 47, 16, 57)
+            .WithSpan(14, 47, 14, 57)
             .WithArguments("ColorToHex", "Color.Green, Color.Blue");
 
-        await Verify.VerifyAnalyzerAsync(
+        await TestAnalyzer(
             @"
 using System;
 using System.Collections.Generic;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+using ExhaustiveDictionary;
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class TestAttribute : Attribute { }
@@ -43,20 +81,42 @@ public static class Program
     }
 
     [TestMethod]
-    public async Task ReportsMissingValuesInDictionaryOnProperty()
+    public async Task ReportsNothingFromAttributeWithSameNameButWrongAssembly()
     {
-        var expected = Verify
-            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(13, 38, 13, 48)
-            .WithArguments("ColorToHex", "Color.Green, Color.Blue");
-
-        await Verify.VerifyAnalyzerAsync(
+        await TestAnalyzer(
             @"
 using System;
 using System.Collections.Generic;
 
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class ExhaustiveAttribute : Attribute { }
+
+public static class Program
+{
+    enum Color { Red, Green, Blue, };
+
+    [Exhaustive]
+    static readonly Dictionary<Color, string> ColorToHex = new() {
+        { Color.Red, ""#FF0000"" }
+    };
+}
+"
+        );
+    }
+
+    [TestMethod]
+    public async Task ReportsMissingValuesInDictionaryOnProperty()
+    {
+        var expected = Verify
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
+            .WithSpan(11, 38, 11, 48)
+            .WithArguments("ColorToHex", "Color.Green, Color.Blue");
+
+        await TestAnalyzer(
+            @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
 
 public static class Program
 {
@@ -73,20 +133,45 @@ public static class Program
     }
 
     [TestMethod]
-    public async Task ReportsAllEnumValuesAsMissingWhenUsingEmptyCollectionExpression()
+    public async Task ReportsMissingValuesInDictionaryOnPropertyIfUsingFullyQualifiedName()
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(13, 47, 13, 57)
-            .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
+            .WithSpan(10, 38, 10, 48)
+            .WithArguments("ColorToHex", "Color.Green, Color.Blue");
 
-        await Verify.VerifyAnalyzerAsync(
+        await TestAnalyzer(
             @"
 using System;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+public static class Program
+{
+    enum Color { Red, Green, Blue, };
+
+    [ExhaustiveDictionary.Exhaustive]
+    static Dictionary<Color, string> ColorToHex = new() {
+        { Color.Red, ""#FF0000"" }
+    };
+}
+",
+            expected
+        );
+    }
+
+    [TestMethod]
+    public async Task ReportsAllEnumValuesAsMissingWhenUsingEmptyCollectionExpression()
+    {
+        var expected = Verify
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
+            .WithSpan(11, 47, 11, 57)
+            .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
+
+        await TestAnalyzer(
+            @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
 
 public static class Program
 {
@@ -105,16 +190,14 @@ public static class Program
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(13, 47, 13, 57)
+            .WithSpan(11, 47, 11, 57)
             .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
 
-        await Verify.VerifyAnalyzerAsync(
+        await TestAnalyzer(
             @"
 using System;
 using System.Collections.Generic;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+using ExhaustiveDictionary;
 
 public static class Program
 {
@@ -131,13 +214,11 @@ public static class Program
     [TestMethod]
     public async Task ReportsNoMissingValuesIfExhaustive2()
     {
-        await Verify.VerifyAnalyzerAsync(
+        await TestAnalyzer(
             @"
 using System;
 using System.Collections.Generic;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+using ExhaustiveDictionary;
 
 public static class Program
 {
@@ -157,13 +238,11 @@ public static class Program
     [TestMethod]
     public async Task ReportsNoMissingValuesIfExhaustive()
     {
-        await Verify.VerifyAnalyzerAsync(
+        await TestAnalyzer(
             @"
 using System;
 using System.Collections.Generic;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+using ExhaustiveDictionary;
 
 public static class Program
 {
@@ -183,13 +262,11 @@ public static class Program
     [TestMethod]
     public async Task NoDiagnosticsIfWeDoNotUseTheAttribute()
     {
-        await Verify.VerifyAnalyzerAsync(
+        await TestAnalyzer(
             @"
 using System;
 using System.Collections.Generic;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+using ExhaustiveDictionary;
 
 public static class Program
 {
@@ -208,16 +285,14 @@ public static class Program
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.DuplicatedEntryRule)
-            .WithSpan(13, 47, 13, 57)
+            .WithSpan(11, 47, 11, 57)
             .WithArguments("ColorToHex", "Color.Red");
 
-        await Verify.VerifyAnalyzerAsync(
+        await TestAnalyzer(
             @"
 using System;
 using System.Collections.Generic;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+using ExhaustiveDictionary;
 
 public static class Program
 {
@@ -241,15 +316,13 @@ public static class Program
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.NotApplicableRule)
-            .WithSpan(13, 24, 13, 34);
+            .WithSpan(11, 24, 11, 34);
 
-        await Verify.VerifyAnalyzerAsync(
+        await TestAnalyzer(
             @"
 using System;
 using System.Collections.Generic;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+using ExhaustiveDictionary;
 
 public static class Program
 {
@@ -270,15 +343,13 @@ public static class Program
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.NotApplicableRule)
-            .WithSpan(13, 38, 13, 48);
+            .WithSpan(11, 38, 11, 48);
 
-        await Verify.VerifyAnalyzerAsync(
+        await TestAnalyzer(
             @"
 using System;
 using System.Collections.Generic;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+using ExhaustiveDictionary;
 
 public static class Program
 {
@@ -299,15 +370,13 @@ public static class Program
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.NotApplicableRule)
-            .WithSpan(11, 36, 11, 46);
+            .WithSpan(9, 36, 9, 46);
 
-        await Verify.VerifyAnalyzerAsync(
+        await TestAnalyzer(
             @"
 using System;
 using System.Collections.Generic;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+using ExhaustiveDictionary;
 
 public static class Program
 {
@@ -326,16 +395,14 @@ public static class Program
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(13, 38, 13, 48)
+            .WithSpan(11, 38, 11, 48)
             .WithArguments("ColorToHex", "Color.Green, Color.Blue");
 
-        await Verify.VerifyCodeFixAsync(
+        await TestCodeFix(
             @"
 using System;
 using System.Collections.Generic;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+using ExhaustiveDictionary;
 
 public static class Program
 {
@@ -349,9 +416,7 @@ public static class Program
             @"
 using System;
 using System.Collections.Generic;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+using ExhaustiveDictionary;
 
 public static class Program
 {
@@ -369,16 +434,14 @@ public static class Program
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(13, 38, 13, 48)
+            .WithSpan(11, 38, 11, 48)
             .WithArguments("ColorToHex", "Color.Green, Color.Blue");
 
-        await Verify.VerifyCodeFixAsync(
+        await TestCodeFix(
             @"
 using System;
 using System.Collections.Generic;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+using ExhaustiveDictionary;
 
 public static class Program
 {
@@ -392,9 +455,7 @@ public static class Program
             @"
 using System;
 using System.Collections.Generic;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public class ExhaustiveAttribute : Attribute { }
+using ExhaustiveDictionary;
 
 public static class Program
 {
