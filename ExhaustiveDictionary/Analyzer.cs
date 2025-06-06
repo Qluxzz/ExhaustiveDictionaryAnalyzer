@@ -80,7 +80,17 @@ namespace ExhaustiveDictionary
                 !node.ChildNodes()
                     .OfType<AttributeListSyntax>()
                     .SelectMany(x => x.Attributes)
-                    .Any(attribute => attribute.ToString() == "Exhaustive")
+                    .Any(attribute =>
+                    {
+                        var symbolInfo = context.SemanticModel.GetSymbolInfo(attribute);
+                        var attributeSymbol = symbolInfo.Symbol as IMethodSymbol;
+
+                        if (attributeSymbol == null)
+                            return false;
+
+                        return attributeSymbol.ContainingType.ToString()
+                            == "ExhaustiveDictionary.ExhaustiveAttribute";
+                    })
             )
                 return;
 
