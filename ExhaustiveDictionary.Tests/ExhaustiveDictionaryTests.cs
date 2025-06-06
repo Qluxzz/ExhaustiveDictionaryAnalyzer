@@ -11,44 +11,6 @@ namespace ExhaustiveDictionary.Tests;
 [TestClass]
 public sealed class ExhaustiveDictionaryTests
 {
-    private static async Task TestAnalyzer(string code, params DiagnosticResult[] diagnostics)
-    {
-        var a = new CSharpAnalyzerTest<EnumDictionaryAnalyzer, DefaultVerifier>
-        {
-            TestCode = code,
-            ReferenceAssemblies = ReferenceAssemblies.Default.AddPackages(
-                [new PackageIdentity("ExhaustiveDictionary.Attribute", "1.0.0")]
-            ),
-        };
-
-        if (diagnostics.Length > 0)
-        {
-            a.TestState.ExpectedDiagnostics.AddRange(diagnostics);
-        }
-
-        await a.RunAsync(CancellationToken.None);
-    }
-
-    private static async Task TestCodeFix(string before, DiagnosticResult diagnostic, string after)
-    {
-        var a = new CSharpCodeFixTest<
-            EnumDictionaryAnalyzer,
-            AddMissingEnumValuesCodeFixProvider,
-            DefaultVerifier
-        >
-        {
-            ReferenceAssemblies = ReferenceAssemblies.Default.AddPackages(
-                [new PackageIdentity("ExhaustiveDictionary.Attribute", "1.0.0")]
-            ),
-            TestCode = before,
-            FixedCode = after,
-        };
-
-        a.TestState.ExpectedDiagnostics.AddRange(diagnostic);
-
-        await a.RunAsync(CancellationToken.None);
-    }
-
     [TestMethod]
     public async Task ReportsMissingValuesInDictionaryOnField()
     {
@@ -466,5 +428,43 @@ public static class Program
 }
 "
         );
+    }
+
+    private static async Task TestAnalyzer(string code, params DiagnosticResult[] diagnostics)
+    {
+        var a = new CSharpAnalyzerTest<EnumDictionaryAnalyzer, DefaultVerifier>
+        {
+            TestCode = code,
+            ReferenceAssemblies = ReferenceAssemblies.Default.AddAssemblies(
+                [typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty)]
+            ),
+        };
+
+        if (diagnostics.Length > 0)
+        {
+            a.TestState.ExpectedDiagnostics.AddRange(diagnostics);
+        }
+
+        await a.RunAsync(CancellationToken.None);
+    }
+
+    private static async Task TestCodeFix(string before, DiagnosticResult diagnostic, string after)
+    {
+        var a = new CSharpCodeFixTest<
+            EnumDictionaryAnalyzer,
+            AddMissingEnumValuesCodeFixProvider,
+            DefaultVerifier
+        >
+        {
+            ReferenceAssemblies = ReferenceAssemblies.Default.AddAssemblies(
+                [typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty)]
+            ),
+            TestCode = before,
+            FixedCode = after,
+        };
+
+        a.TestState.ExpectedDiagnostics.AddRange(diagnostic);
+
+        await a.RunAsync(CancellationToken.None);
     }
 }

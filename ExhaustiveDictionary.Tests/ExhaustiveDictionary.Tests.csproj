@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ExhaustiveDictionary\ExhaustiveDictionary.csproj" />
     <ProjectReference Include="..\ExhaustiveDictionary.CodeFixes\ExhaustiveDictionary.CodeFixes.csproj" />
+    <ProjectReference Include="..\ExhaustiveDictionary.Attribute\ExhaustiveDictionary.Attribute.csproj" />
   </ItemGroup>
 
 </Project>
