@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <PackageId>ExhaustiveDictionary</PackageId>
+    <PackageId>ExhaustiveDictionary.Analyzer</PackageId>
     <PackageVersion>1.0.0.0</PackageVersion>
     <Authors>Qluxzz</Authors>
     
@@ -17,7 +17,7 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>Analyzer that ensures that dictionary with enum key type sets values for all defined enum keys when decorated with a [Exhaustive] attribute</Description>
     <Copyright>Copyright</Copyright>
-    <PackageTags>ExhaustiveDictionary, analyzers</PackageTags>
+    <PackageTags>ExhaustiveDictionary, analyzers, codefixes</PackageTags>
     <DevelopmentDependency>true</DevelopmentDependency>
     <NoPackageAnalysis>true</NoPackageAnalysis>
 
@@ -29,9 +29,6 @@
     <ProjectReference Include="..\ExhaustiveDictionary\ExhaustiveDictionary.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="tools\*.ps1" CopyToOutputDirectory="Always" Pack="true" PackagePath="" />
-  </ItemGroup>
 
   <Target Name="_AddAnalyzersToOutput">
     <ItemGroup>

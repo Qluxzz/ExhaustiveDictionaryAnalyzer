@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageId>ExhaustiveDictionary.Attribute</PackageId>
+    <PackageVersion>1.0.0.0</PackageVersion>
+    <Authors>Qluxzz</Authors>
+    
+    <PackageProjectUrl>https://github.com/Qluxzz/ExhaustiveDictionaryAnalyzer</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Qluxzz/ExhaustiveDictionaryAnalyzer</RepositoryUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Description>Attribute that's used with ExhaustiveDictionary.Analyzer that ensures that dictionary with enum key type sets values for all defined enum keys when decorated with a [Exhaustive] attribute</Description>
+    <Copyright>Copyright</Copyright>
+    <PackageTags>ExhaustiveDictionary, attribute</PackageTags>
+  </PropertyGroup>
+</Project>
