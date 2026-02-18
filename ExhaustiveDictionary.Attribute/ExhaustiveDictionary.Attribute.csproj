@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <IsPackable>false</IsPackable>
     <PackageId>ExhaustiveDictionary.Attribute</PackageId>
     <PackageVersion>1.0.1.0</PackageVersion>
     <Authors>Qluxzz</Authors>

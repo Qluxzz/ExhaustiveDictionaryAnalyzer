@@ -9,7 +9,7 @@
 
   <PropertyGroup>
     <PackageId>ExhaustiveDictionary.Analyzer</PackageId>
-    <PackageVersion>1.0.1.0</PackageVersion>
+    <PackageVersion>1.0.2.0</PackageVersion>
     <Authors>Qluxzz</Authors>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -27,6 +27,8 @@
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\ExhaustiveDictionary.Attribute\ExhaustiveAttribute.cs" Pack="true" PackagePath="contentFiles\cs\any" />
+    <None Include="ExhaustiveDictionary.Analyzer.props" Pack="true" PackagePath="build" />
   </ItemGroup>
 
   <ItemGroup>
