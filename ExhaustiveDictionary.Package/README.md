@@ -1,6 +1,6 @@
 # Exhaustive Dictionary Analyzer
 
-Install the `ExhaustiveDictionary.Attribute` nuget package to get access to the `[Exhaustive]` attribute.
+When defining a dictionary mapping between an enum and another type, place an `[Exhaustive]` attribute on the dictionary to ensure that it defines all of the values of the enum. So when in the future you add a new value, it will become a compile time error if you forgot to add it to the mapping.
 
 ## Rules:
 
