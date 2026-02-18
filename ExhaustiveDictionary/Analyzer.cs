@@ -148,7 +148,8 @@ namespace ExhaustiveDictionary
 
             var providedKeys = initList
                 .Expressions.OfType<InitializerExpressionSyntax>()
-                .SelectMany(expr => expr.Expressions.OfType<MemberAccessExpressionSyntax>())
+                .Select(expr => expr.Expressions.OfType<MemberAccessExpressionSyntax>().FirstOrDefault())
+                .Where(expr => expr != null)
                 .Concat(
                     initList
                         .Expressions.OfType<AssignmentExpressionSyntax>()
