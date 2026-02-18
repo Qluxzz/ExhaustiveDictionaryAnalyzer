@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis.CSharp.Testing;
+using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Testing;
 using Verify = Microsoft.CodeAnalysis.CSharp.Testing.CSharpCodeFixVerifier<
     ExhaustiveDictionary.EnumDictionaryAnalyzer,
@@ -9,7 +9,7 @@ using Verify = Microsoft.CodeAnalysis.CSharp.Testing.CSharpCodeFixVerifier<
 namespace ExhaustiveDictionary.Tests;
 
 [TestClass]
-public sealed class ExhaustiveDictionaryTests
+public sealed class AnalyzerTests
 {
     [TestMethod]
     public async Task ReportsMissingValuesInDictionaryOnField()
@@ -352,83 +352,58 @@ public static class Program
         );
     }
 
-    [TestMethod]
-    public async Task AddsMissingEnumValuesWhenUsingCodeFix()
-    {
-        var expected = Verify
+        [TestMethod]
+        public async Task MappingBetweenTwoDifferentEnumsWorksAsExpected()
+        {
+            await TestAnalyzer(
+                @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+    enum Size { Small, Medium, Large };
+
+    [Exhaustive]
+    static readonly Dictionary<Color, Size> ColorToSize = new() {
+        { Color.Red, Size.Small },
+        { Color.Green, Size.Medium },
+        { Color.Blue, Size.Large }
+    };
+}
+    "
+            );
+        }
+
+        [TestMethod]
+        public async Task UsingExplicitNameSpaceWorksAsExpected()
+        {
+            var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(11, 38, 11, 48)
-            .WithArguments("ColorToHex", "Color.Green, Color.Blue");
+            .WithSpan(11, 45, 11, 56)
+            .WithArguments("ColorToSize", "Color.Green");
 
-        await TestCodeFix(
-            @"
+            await TestAnalyzer(
+                @"
 using System;
 using System.Collections.Generic;
-using ExhaustiveDictionary;
 
 public static class Program
 {
-    enum Color { Red, Green, Blue, };
+    enum Color { Red, Green, Blue };
+    enum Size { Small, Medium, Large };
 
-    [Exhaustive]
-    static Dictionary<Color, string> ColorToHex = new() { { Color.Red, ""#FF0000"" } };
+    [ExhaustiveDictionary.Exhaustive]
+    static readonly Dictionary<Color, Size> ColorToSize = new() {
+        { Color.Red, Size.Small },
+        { Color.Blue, Size.Large }
+    };
 }
-",
-            expected,
-            @"
-using System;
-using System.Collections.Generic;
-using ExhaustiveDictionary;
-
-public static class Program
-{
-    enum Color { Red, Green, Blue, };
-
-    [Exhaustive]
-    static Dictionary<Color, string> ColorToHex = new() { { Color.Red, ""#FF0000"" }, { Color.Green, """" }, { Color.Blue, """" } };
-}
-"
-        );
-    }
-
-    [TestMethod]
-    public async Task AddsMissingEnumValuesUsingSameFormatWhenUsingCodeFix()
-    {
-        var expected = Verify
-            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(11, 38, 11, 48)
-            .WithArguments("ColorToHex", "Color.Green, Color.Blue");
-
-        await TestCodeFix(
-            @"
-using System;
-using System.Collections.Generic;
-using ExhaustiveDictionary;
-
-public static class Program
-{
-    enum Color { Red, Green, Blue, };
-
-    [Exhaustive]
-    static Dictionary<Color, string> ColorToHex = new() { [Color.Red] = ""#FF0000"" };
-}
-",
-            expected,
-            @"
-using System;
-using System.Collections.Generic;
-using ExhaustiveDictionary;
-
-public static class Program
-{
-    enum Color { Red, Green, Blue, };
-
-    [Exhaustive]
-    static Dictionary<Color, string> ColorToHex = new() { [Color.Red] = ""#FF0000"", [Color.Green] = """", [Color.Blue] = """" };
-}
-"
-        );
-    }
+    "
+            ,expected);
+        }
 
     private static async Task TestAnalyzer(string code, params DiagnosticResult[] diagnostics)
     {
@@ -444,26 +419,6 @@ public static class Program
         {
             a.TestState.ExpectedDiagnostics.AddRange(diagnostics);
         }
-
-        await a.RunAsync(CancellationToken.None);
-    }
-
-    private static async Task TestCodeFix(string before, DiagnosticResult diagnostic, string after)
-    {
-        var a = new CSharpCodeFixTest<
-            EnumDictionaryAnalyzer,
-            AddMissingEnumValuesCodeFixProvider,
-            DefaultVerifier
-        >
-        {
-            ReferenceAssemblies = ReferenceAssemblies.Default.AddAssemblies(
-                [typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty)]
-            ),
-            TestCode = before,
-            FixedCode = after,
-        };
-
-        a.TestState.ExpectedDiagnostics.AddRange(diagnostic);
 
         await a.RunAsync(CancellationToken.None);
     }
