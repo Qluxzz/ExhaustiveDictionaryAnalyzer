@@ -9,14 +9,30 @@ using Verify = Microsoft.CodeAnalysis.CSharp.Testing.CSharpCodeFixVerifier<
 namespace ExhaustiveDictionary.Tests;
 
 [TestClass]
-public sealed class CodeFixTests {
+public sealed class CodeFixTests
+{
     [TestMethod]
     public async Task AddsMissingEnumValuesWhenUsingCodeFix()
     {
-        var expected = Verify
-            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(11, 38, 11, 48)
-            .WithArguments("ColorToHex", "Color.Green, Color.Blue");
+        List<DiagnosticResult> expected =
+        [
+            Verify
+                .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
+                .WithSpan(11, 38, 11, 48)
+                .WithArguments("ColorToHex", "Color.Green, Color.Blue"),
+        ];
+
+        List<DiagnosticResult> expectedAfter =
+        [
+            DiagnosticResult
+                .CompilerError("CS0103")
+                .WithSpan(11, 100, 11, 104)
+                .WithArguments("TODO"),
+            DiagnosticResult
+                .CompilerError("CS0103")
+                .WithSpan(11, 122, 11, 126)
+                .WithArguments("TODO"),
+        ];
 
         await TestCodeFix(
             @"
@@ -43,19 +59,35 @@ public static class Program
     enum Color { Red, Green, Blue, };
 
     [Exhaustive]
-    static Dictionary<Color, string> ColorToHex = new() { { Color.Red, ""#FF0000"" }, { Color.Green, """" }, { Color.Blue, """" } };
+    static Dictionary<Color, string> ColorToHex = new() { { Color.Red, ""#FF0000"" }, { Color.Green, TODO }, { Color.Blue, TODO } };
 }
-"
+",
+            expectedAfter
         );
     }
 
     [TestMethod]
     public async Task AddsMissingEnumValuesUsingSameFormatWhenUsingCodeFix()
     {
-        var expected = Verify
-            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(11, 38, 11, 48)
-            .WithArguments("ColorToHex", "Color.Green, Color.Blue");
+        List<DiagnosticResult> expected =
+        [
+            Verify
+                .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
+                .WithSpan(11, 38, 11, 48)
+                .WithArguments("ColorToHex", "Color.Green, Color.Blue"),
+        ];
+
+        List<DiagnosticResult> expectedAfter =
+        [
+            DiagnosticResult
+                .CompilerError("CS0103")
+                .WithSpan(11, 100, 11, 104)
+                .WithArguments("TODO"),
+            DiagnosticResult
+                .CompilerError("CS0103")
+                .WithSpan(11, 121, 11, 125)
+                .WithArguments("TODO"),
+        ];
 
         await TestCodeFix(
             @"
@@ -82,13 +114,19 @@ public static class Program
     enum Color { Red, Green, Blue, };
 
     [Exhaustive]
-    static Dictionary<Color, string> ColorToHex = new() { [Color.Red] = ""#FF0000"", [Color.Green] = """", [Color.Blue] = """" };
+    static Dictionary<Color, string> ColorToHex = new() { [Color.Red] = ""#FF0000"", [Color.Green] = TODO, [Color.Blue] = TODO };
 }
-"
+",
+            expectedAfter
         );
     }
 
-    private static async Task TestCodeFix(string before, DiagnosticResult diagnostic, string after)
+    private static async Task TestCodeFix(
+        string before,
+        List<DiagnosticResult> diagnosticsBefore,
+        string after,
+        List<DiagnosticResult> diagnosticsAfter
+    )
     {
         var a = new CSharpCodeFixTest<
             EnumDictionaryAnalyzer,
@@ -96,16 +134,16 @@ public static class Program
             DefaultVerifier
         >
         {
-            ReferenceAssemblies = ReferenceAssemblies.Default.AddAssemblies(
-                [typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty)]
-            ),
+            ReferenceAssemblies = ReferenceAssemblies.Default.AddAssemblies([
+                typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty),
+            ]),
             TestCode = before,
             FixedCode = after,
         };
 
-        a.TestState.ExpectedDiagnostics.AddRange(diagnostic);
+        a.TestState.ExpectedDiagnostics.AddRange(diagnosticsBefore);
+        a.FixedState.ExpectedDiagnostics.AddRange(diagnosticsAfter);
 
         await a.RunAsync(CancellationToken.None);
     }
-
 }

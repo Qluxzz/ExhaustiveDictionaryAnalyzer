@@ -47,8 +47,7 @@ namespace ExhaustiveDictionary
             // Find the type declaration identified by the diagnostic.
             var declaration = root.FindToken(diagnosticSpan.Start)
                 .Parent.AncestorsAndSelf()
-                .Where(x => x is FieldDeclarationSyntax || x is PropertyDeclarationSyntax)
-                .First();
+                .First(x => x is FieldDeclarationSyntax || x is PropertyDeclarationSyntax);
 
             if (declaration is null)
                 return;
@@ -164,6 +163,9 @@ namespace ExhaustiveDictionary
             var useIndexerStyle =
                 initializer.Expressions.FirstOrDefault() is AssignmentExpressionSyntax;
 
+            // Always use an identifier named TODO for missing values, as expected by the test
+            var todoIdentifier = SyntaxFactory.IdentifierName("TODO");
+
             var newEntries = missingEnumValues.Select(field =>
             {
                 var keyExpression = SyntaxFactory.MemberAccessExpression(
@@ -172,14 +174,11 @@ namespace ExhaustiveDictionary
                     SyntaxFactory.IdentifierName(field.Name)
                 );
 
-                var valueExpression = SyntaxFactory.LiteralExpression(
-                    SyntaxKind.StringLiteralExpression,
-                    SyntaxFactory.Literal("")
-                );
+                ExpressionSyntax valueExpression = todoIdentifier;
 
                 if (useIndexerStyle)
                 {
-                    // [Color.Red] = "red"
+                    // [Color.Red] = TODO
                     return (ExpressionSyntax)
                         SyntaxFactory.AssignmentExpression(
                             SyntaxKind.SimpleAssignmentExpression,
@@ -195,7 +194,7 @@ namespace ExhaustiveDictionary
                 }
                 else
                 {
-                    // { Color.Red, "red" }
+                    // { Color.Red, TODO }
                     return SyntaxFactory.InitializerExpression(
                         SyntaxKind.ComplexElementInitializerExpression,
                         SyntaxFactory.SeparatedList<ExpressionSyntax>(
