@@ -352,11 +352,11 @@ public static class Program
         );
     }
 
-        [TestMethod]
-        public async Task MappingBetweenTwoDifferentEnumsWorksAsExpected()
-        {
-            await TestAnalyzer(
-                @"
+    [TestMethod]
+    public async Task MappingBetweenTwoDifferentEnumsWorksAsExpected()
+    {
+        await TestAnalyzer(
+            @"
 using System;
 using System.Collections.Generic;
 using ExhaustiveDictionary;
@@ -374,19 +374,19 @@ public static class Program
     };
 }
     "
-            );
-        }
+        );
+    }
 
-        [TestMethod]
-        public async Task UsingExplicitNameSpaceWorksAsExpected()
-        {
-            var expected = Verify
+    [TestMethod]
+    public async Task UsingExplicitNameSpaceWorksAsExpected()
+    {
+        var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
             .WithSpan(11, 45, 11, 56)
             .WithArguments("ColorToSize", "Color.Green");
 
-            await TestAnalyzer(
-                @"
+        await TestAnalyzer(
+            @"
 using System;
 using System.Collections.Generic;
 
@@ -401,18 +401,45 @@ public static class Program
         { Color.Blue, Size.Large }
     };
 }
-    "
-            ,expected);
-        }
+    ",
+            expected
+        );
+    }
+
+    [TestMethod]
+    public async Task EmptyConstructorComplainsAboutMissingMembers()
+    {
+        var expected = Verify
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
+            .WithSpan(11, 47, 11, 58)
+            .WithArguments("ColorToSize", "Color.Red, Color.Green, Color.Blue");
+
+        await TestAnalyzer(
+            @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+
+    [Exhaustive]
+    static readonly Dictionary<Color, string> ColorToSize = new();
+}
+    ",
+            expected
+        );
+    }
 
     private static async Task TestAnalyzer(string code, params DiagnosticResult[] diagnostics)
     {
         var a = new CSharpAnalyzerTest<EnumDictionaryAnalyzer, DefaultVerifier>
         {
             TestCode = code,
-            ReferenceAssemblies = ReferenceAssemblies.Default.AddAssemblies(
-                [typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty)]
-            ),
+            ReferenceAssemblies = ReferenceAssemblies.Default.AddAssemblies([
+                typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty),
+            ]),
         };
 
         if (diagnostics.Length > 0)

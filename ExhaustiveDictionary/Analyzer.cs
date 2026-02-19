@@ -127,7 +127,16 @@ namespace ExhaustiveDictionary
                 .Where(f => f.HasConstantValue)
                 .ToList();
 
-            if (initializer == null || initializer.Value is CollectionExpressionSyntax)
+            // If the initializer is missing, or is a collection expression ([]), or is an empty constructor (new())
+            bool isEmptyConstructor =
+                initializer?.Value is ImplicitObjectCreationExpressionSyntax ioc
+                && (ioc.Initializer == null || !ioc.Initializer.Expressions.Any());
+
+            if (
+                initializer == null
+                || initializer.Value is CollectionExpressionSyntax
+                || isEmptyConstructor
+            )
             {
                 var diagnostic = Diagnostic.Create(
                     ExhaustiveRule,
@@ -148,7 +157,9 @@ namespace ExhaustiveDictionary
 
             var providedKeys = initList
                 .Expressions.OfType<InitializerExpressionSyntax>()
-                .Select(expr => expr.Expressions.OfType<MemberAccessExpressionSyntax>().FirstOrDefault())
+                .Select(expr =>
+                    expr.Expressions.OfType<MemberAccessExpressionSyntax>().FirstOrDefault()
+                )
                 .Where(expr => expr != null)
                 .Concat(
                     initList
