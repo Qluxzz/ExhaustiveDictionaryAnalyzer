@@ -9,7 +9,8 @@ using Verify = Microsoft.CodeAnalysis.CSharp.Testing.CSharpCodeFixVerifier<
 namespace ExhaustiveDictionary.Tests;
 
 [TestClass]
-public sealed class CodeFixTests {
+public sealed class CodeFixTests
+{
     [TestMethod]
     public async Task AddsMissingEnumValuesWhenUsingCodeFix()
     {
@@ -96,9 +97,9 @@ public static class Program
             DefaultVerifier
         >
         {
-            ReferenceAssemblies = ReferenceAssemblies.Default.AddAssemblies(
-                [typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty)]
-            ),
+            ReferenceAssemblies = ReferenceAssemblies.Default.AddAssemblies([
+                typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty),
+            ]),
             TestCode = before,
             FixedCode = after,
         };
@@ -107,5 +108,4 @@ public static class Program
 
         await a.RunAsync(CancellationToken.None);
     }
-
 }

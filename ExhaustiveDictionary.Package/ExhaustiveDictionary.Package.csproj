@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <IncludeBuildOutput>false</IncludeBuildOutput>
@@ -9,11 +8,11 @@
 
   <PropertyGroup>
     <PackageId>ExhaustiveDictionary.Analyzer</PackageId>
-    <PackageVersion>1.0.2.0</PackageVersion>
+    <PackageVersion>1.0.3.0</PackageVersion>
     <Authors>Qluxzz</Authors>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    
+
     <PackageProjectUrl>https://github.com/Qluxzz/ExhaustiveDictionaryAnalyzer</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Qluxzz/ExhaustiveDictionaryAnalyzer</RepositoryUrl>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
@@ -27,7 +26,11 @@
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
-    <None Include="..\ExhaustiveDictionary.Attribute\ExhaustiveAttribute.cs" Pack="true" PackagePath="contentFiles\cs\any" />
+    <None
+      Include="..\ExhaustiveDictionary.Attribute\ExhaustiveAttribute.cs"
+      Pack="true"
+      PackagePath="contentFiles\cs\any"
+    />
     <None Include="ExhaustiveDictionary.Analyzer.props" Pack="true" PackagePath="build" />
   </ItemGroup>
 
@@ -38,9 +41,14 @@
 
   <Target Name="_AddAnalyzersToOutput">
     <ItemGroup>
-      <TfmSpecificPackageFile Include="$(OutputPath)\ExhaustiveDictionary.dll" PackagePath="analyzers/dotnet/cs" />
-      <TfmSpecificPackageFile Include="$(OutputPath)\ExhaustiveDictionary.CodeFixes.dll" PackagePath="analyzers/dotnet/cs" />
+      <TfmSpecificPackageFile
+        Include="$(OutputPath)\ExhaustiveDictionary.dll"
+        PackagePath="analyzers/dotnet/cs"
+      />
+      <TfmSpecificPackageFile
+        Include="$(OutputPath)\ExhaustiveDictionary.CodeFixes.dll"
+        PackagePath="analyzers/dotnet/cs"
+      />
     </ItemGroup>
   </Target>
-
 </Project>
