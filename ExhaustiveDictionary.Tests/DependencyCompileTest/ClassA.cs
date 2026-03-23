@@ -10,9 +10,9 @@ namespace DependencyCompileTest
         };
 
         [Exhaustive]
-        public static readonly System.Collections.Generic.Dictionary<Color, string> ColorToHex =
-            new System.Collections.Generic.Dictionary<Color, string> {
-                { Color.Red, "#FF0000" }
-            };
+        public static readonly Dictionary<Color, string> ColorToHex = new Dictionary<Color, string>
+        {
+            { Color.Red, "#FF0000" },
+        };
     }
 }

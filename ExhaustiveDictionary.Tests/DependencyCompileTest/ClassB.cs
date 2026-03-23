@@ -10,7 +10,9 @@ namespace DependencyCompileTest
         };
 
         [Exhaustive]
-        public static readonly System.Collections.Generic.Dictionary<Size, string> SizeToString =
-            new System.Collections.Generic.Dictionary<Size, string> { { Size.Small, "S" } };
+        public static readonly Dictionary<Size, string> SizeToString = new Dictionary<Size, string>
+        {
+            { Size.Small, "S" },
+        };
     }
 }
