@@ -127,16 +127,9 @@ namespace ExhaustiveDictionary
                 .Where(f => f.HasConstantValue)
                 .ToList();
 
-            // If the initializer is missing, or is a collection expression ([]), or is an empty constructor (new())
-            bool isEmptyConstructor =
-                initializer?.Value is ImplicitObjectCreationExpressionSyntax ioc
-                && (ioc.Initializer == null || !ioc.Initializer.Expressions.Any());
+            var initList = ExtractInitializerList(initializer);
 
-            if (
-                initializer == null
-                || initializer.Value is CollectionExpressionSyntax
-                || isEmptyConstructor
-            )
+            if (initList == null || !initList.Expressions.Any())
             {
                 var diagnostic = Diagnostic.Create(
                     ExhaustiveRule,
@@ -147,13 +140,6 @@ namespace ExhaustiveDictionary
                 context.ReportDiagnostic(diagnostic);
                 return;
             }
-
-            if (!(initializer.Value is ImplicitObjectCreationExpressionSyntax objectCreation))
-                return;
-
-            var initList = objectCreation.Initializer;
-            if (initList == null)
-                return;
 
             var providedKeys = initList
                 .Expressions.OfType<InitializerExpressionSyntax>()
@@ -207,6 +193,22 @@ namespace ExhaustiveDictionary
                     )
                 );
             }
+        }
+
+        private static InitializerExpressionSyntax ExtractInitializerList(
+            EqualsValueClauseSyntax initializer
+        )
+        {
+            if (initializer == null)
+                return null;
+
+            if (initializer.Value is ImplicitObjectCreationExpressionSyntax ioc)
+                return ioc.Initializer;
+
+            if (initializer.Value is ObjectCreationExpressionSyntax oc)
+                return oc.Initializer;
+
+            return null;
         }
 
         private static string FormatEnumName(IFieldSymbol enumValue)
