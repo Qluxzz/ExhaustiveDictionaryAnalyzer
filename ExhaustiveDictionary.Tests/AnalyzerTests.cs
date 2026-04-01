@@ -9,7 +9,7 @@ using Verify = Microsoft.CodeAnalysis.CSharp.Testing.CSharpCodeFixVerifier<
 namespace ExhaustiveDictionary.Tests;
 
 [TestClass]
-public sealed class AnalyzerTests
+public sealed partial class AnalyzerTests
 {
     [TestMethod]
     public async Task ReportsMissingValuesInDictionaryOnField()
@@ -115,58 +115,6 @@ public static class Program
     static Dictionary<Color, string> ColorToHex = new() {
         { Color.Red, ""#FF0000"" }
     };
-}
-",
-            expected
-        );
-    }
-
-    [TestMethod]
-    public async Task ReportsAllEnumValuesAsMissingWhenUsingEmptyCollectionExpression()
-    {
-        var expected = Verify
-            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(11, 47, 11, 57)
-            .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
-
-        await TestAnalyzer(
-            @"
-using System;
-using System.Collections.Generic;
-using ExhaustiveDictionary;
-
-public static class Program
-{
-    enum Color { Red, Green, Blue };
-
-    [Exhaustive]
-    static readonly Dictionary<Color, string> ColorToHex = [];
-}
-",
-            expected
-        );
-    }
-
-    [TestMethod]
-    public async Task ReportsAllEnumValuesAsMissingWhenNotInitialized()
-    {
-        var expected = Verify
-            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(11, 47, 11, 57)
-            .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
-
-        await TestAnalyzer(
-            @"
-using System;
-using System.Collections.Generic;
-using ExhaustiveDictionary;
-
-public static class Program
-{
-    enum Color { Red, Green, Blue };
-
-    [Exhaustive]
-    static readonly Dictionary<Color, string> ColorToHex;
 }
 ",
             expected
@@ -400,32 +348,6 @@ public static class Program
         { Color.Red, Size.Small },
         { Color.Blue, Size.Large }
     };
-}
-    ",
-            expected
-        );
-    }
-
-    [TestMethod]
-    public async Task EmptyConstructorComplainsAboutMissingMembers()
-    {
-        var expected = Verify
-            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(11, 47, 11, 58)
-            .WithArguments("ColorToSize", "Color.Red, Color.Green, Color.Blue");
-
-        await TestAnalyzer(
-            @"
-using System;
-using System.Collections.Generic;
-using ExhaustiveDictionary;
-
-public static class Program
-{
-    enum Color { Red, Green, Blue };
-
-    [Exhaustive]
-    static readonly Dictionary<Color, string> ColorToSize = new();
 }
     ",
             expected
