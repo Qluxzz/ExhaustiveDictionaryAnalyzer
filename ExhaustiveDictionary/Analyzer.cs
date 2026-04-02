@@ -127,7 +127,7 @@ namespace ExhaustiveDictionary
                 .Where(f => f.HasConstantValue)
                 .ToList();
 
-            var initList = ExtractInitializerList(initializer);
+            var initList = SyntaxHelpers.ExtractInitializerList(initializer);
 
             if (initList == null || !initList.Expressions.Any())
             {
@@ -141,24 +141,7 @@ namespace ExhaustiveDictionary
                 return;
             }
 
-            var providedKeys = initList
-                .Expressions.OfType<InitializerExpressionSyntax>()
-                .Select(expr =>
-                    expr.Expressions.OfType<MemberAccessExpressionSyntax>().FirstOrDefault()
-                )
-                .Where(expr => expr != null)
-                .Concat(
-                    initList
-                        .Expressions.OfType<AssignmentExpressionSyntax>()
-                        .SelectMany(x =>
-                            ((ImplicitElementAccessSyntax)x.Left).ArgumentList.Arguments
-                        )
-                        .Select(arg => arg.Expression)
-                )
-                .Select(expr => context.SemanticModel.GetConstantValue(expr))
-                .Where(val => val.HasValue)
-                .Select(val => val.Value)
-                .ToList();
+            var providedKeys = SyntaxHelpers.GetProvidedKeys(initList, context.SemanticModel);
 
             var duplicatedKeys = enumValues
                 .Where(x => providedKeys.Count(y => y == x.ConstantValue) > 1)
@@ -193,22 +176,6 @@ namespace ExhaustiveDictionary
                     )
                 );
             }
-        }
-
-        private static InitializerExpressionSyntax ExtractInitializerList(
-            EqualsValueClauseSyntax initializer
-        )
-        {
-            if (initializer == null)
-                return null;
-
-            if (initializer.Value is ImplicitObjectCreationExpressionSyntax ioc)
-                return ioc.Initializer;
-
-            if (initializer.Value is ObjectCreationExpressionSyntax oc)
-                return oc.Initializer;
-
-            return null;
         }
 
         private static string FormatEnumName(IFieldSymbol enumValue)

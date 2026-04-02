@@ -9,7 +9,7 @@ using Verify = Microsoft.CodeAnalysis.CSharp.Testing.CSharpCodeFixVerifier<
 namespace ExhaustiveDictionary.Tests;
 
 [TestClass]
-public sealed class CodeFixTests
+public sealed partial class CodeFixTests
 {
     [TestMethod]
     public async Task AddsMissingEnumValuesWhenUsingCodeFix()

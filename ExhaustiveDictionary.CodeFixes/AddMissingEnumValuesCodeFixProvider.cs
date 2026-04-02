@@ -10,7 +10,6 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Formatting;
 
 namespace ExhaustiveDictionary
 {
@@ -78,19 +77,16 @@ namespace ExhaustiveDictionary
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
 
             TypeSyntax typeSyntax;
-            SyntaxToken identifier;
             EqualsValueClauseSyntax initializer;
 
             if (node is FieldDeclarationSyntax fieldDeclaration)
             {
                 typeSyntax = fieldDeclaration.Declaration.Type;
-                identifier = fieldDeclaration.Declaration.Variables.First().Identifier;
                 initializer = fieldDeclaration.Declaration.Variables.First().Initializer;
             }
             else if (node is PropertyDeclarationSyntax propertyDeclaration)
             {
                 typeSyntax = propertyDeclaration.Type;
-                identifier = propertyDeclaration.Identifier;
                 initializer = propertyDeclaration.Initializer;
             }
             else
@@ -108,78 +104,127 @@ namespace ExhaustiveDictionary
                 .Where(f => f.HasConstantValue)
                 .ToList();
 
-            if (initializer == null || initializer.Value is CollectionExpressionSyntax)
+            var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+
+            // Case: collection expression (e.g., = []) – replace with new() { ... }
+            if (initializer?.Value is CollectionExpressionSyntax)
             {
-                return document;
+                var allEntries = CreateInitializerEntries(enumValues, useIndexerStyle: false);
+                var newInitList = CreateInlineInitializerExpression(allEntries);
+                var newCreation = SyntaxFactory
+                    .ImplicitObjectCreationExpression()
+                    .WithInitializer(newInitList);
+                var equalsClause = SyntaxFactory.EqualsValueClause(newCreation);
+
+                SyntaxNode newDeclaration;
+                if (node is FieldDeclarationSyntax fdCe)
+                {
+                    var varDeclarator = fdCe.Declaration.Variables.First();
+                    var newVarDeclarator = varDeclarator.WithInitializer(equalsClause);
+                    var newVarDecl = fdCe.Declaration.WithVariables(
+                        SyntaxFactory.SingletonSeparatedList(newVarDeclarator)
+                    );
+                    newDeclaration = fdCe.WithDeclaration(newVarDecl);
+                }
+                else
+                {
+                    var pd = (PropertyDeclarationSyntax)node;
+                    newDeclaration = pd.WithInitializer(equalsClause);
+                }
+
+                return document.WithSyntaxRoot(root.ReplaceNode(node, newDeclaration));
             }
 
-            if (!(initializer.Value is ImplicitObjectCreationExpressionSyntax objectCreation))
-                return document;
+            // Case: no initializer (e.g., = is missing entirely)
+            if (initializer == null)
+            {
+                var allEntries = CreateInitializerEntries(enumValues, useIndexerStyle: false);
+                var newInitList = CreateInlineInitializerExpression(allEntries);
+                var newCreation = SyntaxFactory
+                    .ImplicitObjectCreationExpression()
+                    .WithInitializer(newInitList);
+                var equalsClause = SyntaxFactory.EqualsValueClause(newCreation);
 
-            var initList = objectCreation.Initializer;
+                SyntaxNode newDeclaration;
+                if (node is FieldDeclarationSyntax fd)
+                {
+                    var varDeclarator = fd.Declaration.Variables.First();
+                    var newVarDeclarator = varDeclarator.WithInitializer(equalsClause);
+                    var newVarDecl = fd.Declaration.WithVariables(
+                        SyntaxFactory.SingletonSeparatedList(newVarDeclarator)
+                    );
+                    newDeclaration = fd.WithDeclaration(newVarDecl);
+                }
+                else
+                {
+                    var pd = (PropertyDeclarationSyntax)node;
+                    newDeclaration = pd.WithInitializer(equalsClause);
+                }
+
+                return document.WithSyntaxRoot(root.ReplaceNode(node, newDeclaration));
+            }
+
+            // Extract the initializer list (handles ImplicitObjectCreation and ObjectCreation)
+            var initList = SyntaxHelpers.ExtractInitializerList(initializer);
+
+            // Case: = new() with no brace initializer
             if (initList == null)
-                return document;
+            {
+                if (!(initializer.Value is ImplicitObjectCreationExpressionSyntax iocNoInit))
+                    return document;
 
-            var providedKeys = initList
-                .Expressions.OfType<InitializerExpressionSyntax>()
-                .SelectMany(expr => expr.Expressions.OfType<MemberAccessExpressionSyntax>())
-                .Concat(
-                    initList
-                        .Expressions.OfType<AssignmentExpressionSyntax>()
-                        .SelectMany(x =>
-                            ((ImplicitElementAccessSyntax)x.Left).ArgumentList.Arguments
-                        )
-                        .Select(arg => arg.Expression)
-                )
-                .Select(expr => semanticModel.GetConstantValue(expr))
-                .Where(val => val.HasValue)
-                .Select(val => val.Value)
-                .ToList();
+                var allEntries = CreateInitializerEntries(enumValues, useIndexerStyle: false);
+                var newInitList = CreateInlineInitializerExpression(allEntries);
+                var newCreation = iocNoInit.WithInitializer(newInitList);
+                return document.WithSyntaxRoot(root.ReplaceNode(iocNoInit, newCreation));
+            }
 
-            var missingKeys = enumValues
+            // Case: existing initializer list – find and add missing entries
+            var providedKeys = SyntaxHelpers.GetProvidedKeys(initList, semanticModel);
+            var missingValues = enumValues
                 .Where(x => !providedKeys.Contains(x.ConstantValue))
                 .ToList();
 
-            return await AddMissingEnumValues(document, initializer, missingKeys);
-        }
-
-        private static async Task<Document> AddMissingEnumValues(
-            Document document,
-            EqualsValueClauseSyntax equalsValueClause,
-            List<IFieldSymbol> missingEnumValues
-        )
-        {
-            if (
-                !(
-                    equalsValueClause.Value
-                    is ImplicitObjectCreationExpressionSyntax implicitCreation
-                )
-            )
-                return document;
-
-            var initializer = implicitCreation.Initializer;
-            if (initializer == null)
+            if (!missingValues.Any())
                 return document;
 
             var useIndexerStyle =
-                initializer.Expressions.FirstOrDefault() is AssignmentExpressionSyntax;
+                initList.Expressions.FirstOrDefault() is AssignmentExpressionSyntax;
+            var missingEntries = CreateInitializerEntries(missingValues, useIndexerStyle);
 
-            var newEntries = missingEnumValues.Select(field =>
+            InitializerExpressionSyntax updatedInitList;
+            if (!initList.Expressions.Any())
             {
-                var keyExpression = SyntaxFactory.MemberAccessExpression(
-                    SyntaxKind.SimpleMemberAccessExpression,
-                    SyntaxFactory.IdentifierName(field.ContainingType.Name),
-                    SyntaxFactory.IdentifierName(field.Name)
+                // Empty ObjectInitializerExpression (e.g. "{ }") must be replaced with the
+                // correct CollectionInitializerExpression kind so the syntax is valid.
+                updatedInitList = SyntaxFactory.InitializerExpression(
+                    SyntaxKind.CollectionInitializerExpression,
+                    SyntaxFactory.SeparatedList<ExpressionSyntax>(missingEntries)
                 );
+            }
+            else
+            {
+                updatedInitList = initList.WithExpressions(
+                    initList.Expressions.AddRange(missingEntries)
+                );
+            }
 
-                var valueExpression = SyntaxFactory.LiteralExpression(
-                    SyntaxKind.StringLiteralExpression,
-                    SyntaxFactory.Literal("")
-                );
+            return document.WithSyntaxRoot(root.ReplaceNode(initList, updatedInitList));
+        }
+
+        private static IEnumerable<ExpressionSyntax> CreateInitializerEntries(
+            IEnumerable<IFieldSymbol> fields,
+            bool useIndexerStyle
+        )
+        {
+            return fields.Select(field =>
+            {
+                var keyExpression = MakeMemberAccess(field);
+                var valueExpression = MakeEmptyString();
 
                 if (useIndexerStyle)
                 {
-                    // [Color.Red] = "red"
+                    // [Color.Red] = ""
                     return (ExpressionSyntax)
                         SyntaxFactory.AssignmentExpression(
                             SyntaxKind.SimpleAssignmentExpression,
@@ -195,7 +240,7 @@ namespace ExhaustiveDictionary
                 }
                 else
                 {
-                    // { Color.Red, "red" }
+                    // { Color.Red, "" }
                     return SyntaxFactory.InitializerExpression(
                         SyntaxKind.ComplexElementInitializerExpression,
                         SyntaxFactory.SeparatedList<ExpressionSyntax>(
@@ -209,17 +254,27 @@ namespace ExhaustiveDictionary
                     );
                 }
             });
-
-            var updatedInitializer = initializer.WithExpressions(
-                initializer.Expressions.AddRange(newEntries)
-            );
-            var updatedCreation = implicitCreation.WithInitializer(updatedInitializer);
-            var updatedEqualsValue = equalsValueClause.WithValue(updatedCreation);
-
-            var root = await document.GetSyntaxRootAsync().ConfigureAwait(false);
-            var newRoot = root.ReplaceNode(equalsValueClause, updatedEqualsValue);
-
-            return document.WithSyntaxRoot(newRoot);
         }
+
+        private static InitializerExpressionSyntax CreateInlineInitializerExpression(
+            IEnumerable<ExpressionSyntax> entries
+        ) =>
+            SyntaxFactory.InitializerExpression(
+                SyntaxKind.CollectionInitializerExpression,
+                SyntaxFactory.SeparatedList<ExpressionSyntax>().AddRange(entries)
+            );
+
+        private static MemberAccessExpressionSyntax MakeMemberAccess(IFieldSymbol field) =>
+            SyntaxFactory.MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                SyntaxFactory.IdentifierName(field.ContainingType.Name),
+                SyntaxFactory.IdentifierName(field.Name)
+            );
+
+        private static LiteralExpressionSyntax MakeEmptyString() =>
+            SyntaxFactory.LiteralExpression(
+                SyntaxKind.StringLiteralExpression,
+                SyntaxFactory.Literal("")
+            );
     }
 }
