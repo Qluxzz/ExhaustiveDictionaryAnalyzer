@@ -1,0 +1,27 @@
+on:
+  pull_request:
+    branches:
+      - "main"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-dotnet
+
+      - name: Install tools
+        run: dotnet tool restore
+
+      - name: Lint backend
+        run: dotnet tool run csharpier check .
+
+      - name: Build without errors
+        run: dotnet build
+
+      - name: Dotnet test
+        run: dotnet test --no-restore --no-build
