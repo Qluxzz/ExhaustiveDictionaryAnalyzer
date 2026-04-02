@@ -89,6 +89,204 @@ public static class Program
         );
     }
 
+    [TestMethod]
+    public async Task AddsMissingEnumValuesWhenNotInitialized()
+    {
+        var expected = Verify
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
+            .WithSpan(11, 47, 11, 57)
+            .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
+
+        await TestCodeFix(
+            @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+
+    [Exhaustive]
+    static readonly Dictionary<Color, string> ColorToHex;
+}
+",
+            expected,
+            @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+
+    [Exhaustive]
+    static readonly Dictionary<Color, string> ColorToHex = new()
+    {
+        {
+            Color.Red,
+            """"
+        },
+        {
+            Color.Green,
+            """"
+        },
+        {
+            Color.Blue,
+            """"
+        }
+    };
+}
+"
+        );
+    }
+
+    [TestMethod]
+    public async Task AddsMissingEnumValuesWhenUsingNewInitializer()
+    {
+        var expected = Verify
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
+            .WithSpan(11, 47, 11, 57)
+            .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
+
+        await TestCodeFix(
+            @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+
+    [Exhaustive]
+    static readonly Dictionary<Color, string> ColorToHex = new();
+}
+",
+            expected,
+            @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+
+    [Exhaustive]
+    static readonly Dictionary<Color, string> ColorToHex = new()
+    {
+        {
+            Color.Red,
+            """"
+        },
+        {
+            Color.Green,
+            """"
+        },
+        {
+            Color.Blue,
+            """"
+        }
+    };
+}
+"
+        );
+    }
+
+    [TestMethod]
+    public async Task AddsMissingEnumValuesForExplicitTypeAndEmptyInitializer()
+    {
+        var expected = Verify
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
+            .WithSpan(11, 55, 11, 65)
+            .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
+
+        await TestCodeFix(
+            @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+
+    [Exhaustive]
+    private static readonly Dictionary<Color, string> ColorToHex = new Dictionary<Color, string>() { };
+}
+",
+            expected,
+            @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+
+    [Exhaustive]
+    private static readonly Dictionary<Color, string> ColorToHex = new Dictionary<Color, string>() { { Color.Red, """" }, { Color.Green, """" }, { Color.Blue, """" } };
+}
+"
+        );
+    }
+
+    [TestMethod]
+    public async Task AddsMissingEnumValuesWhenUsingEmptyCollectionExpression()
+    {
+        var expected = Verify
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
+            .WithSpan(11, 47, 11, 57)
+            .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
+
+        await TestCodeFix(
+            @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+
+    [Exhaustive]
+    static readonly Dictionary<Color, string> ColorToHex = [];
+}
+",
+            expected,
+            @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+
+    [Exhaustive]
+    static readonly Dictionary<Color, string> ColorToHex = new()
+    {
+        {
+            Color.Red,
+            """"
+        },
+        {
+            Color.Green,
+            """"
+        },
+        {
+            Color.Blue,
+            """"
+        }
+    };
+}
+"
+        );
+    }
+
     private static async Task TestCodeFix(string before, DiagnosticResult diagnostic, string after)
     {
         var a = new CSharpCodeFixTest<
