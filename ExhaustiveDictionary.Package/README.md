@@ -1,6 +1,6 @@
 # Exhaustive Dictionary Analyzer
 
-When defining a dictionary mapping between an enum and another type, place an `[Exhaustive]` attribute on the dictionary to ensure that it defines all of the values of the enum. So when in the future you add a new value, it will become a compile time error if you forgot to add it to the mapping.
+When defining a dictionary mapping between an enum and another type, place an `[Exhaustive]` attribute on the dictionary type to ensure that it defines all of the values of the enum. So when in the future you add a new value, it will become a compile time error if you forgot to add it to the mapping.
 
 ## Rules:
 
@@ -35,7 +35,7 @@ Dictionary<Color, string> ColorToHex = new() {
 };
 ```
 
-Here the rule will complain because we have added `Color.Red` twice
+Here the rule will complain because we have added `Color.Red` twice. For regular Dictionaries this is not a problem since you would also get a DuplicateKey exception when starting the project. But some dictionary types like FrozenDictionary doesn't throw but overwrite the same key with the last value defined [1](https://learn.microsoft.com/en-us/dotnet/api/system.collections.frozen.frozendictionary.create#remarks)
 
 ### EXHAUSTIVEDICT0003
 

@@ -35,7 +35,7 @@ public static class Program
     }
 
     [TestMethod]
-    public async Task ReportsAllEnumValuesAsMissingWhenUsingNewInitalizer()
+    public async Task ReportsAllEnumValuesAsMissingWhenUsingNewInitializer()
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)

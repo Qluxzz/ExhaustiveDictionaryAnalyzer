@@ -167,16 +167,24 @@ namespace ExhaustiveDictionary
             // Extract the initializer list (handles ImplicitObjectCreation and ObjectCreation)
             var initList = SyntaxHelpers.ExtractInitializerList(initializer);
 
-            // Case: = new() with no brace initializer
+            // Case: = new() or new Dictionary<K,V>() with no brace initializer
             if (initList == null)
             {
-                if (!(initializer.Value is ImplicitObjectCreationExpressionSyntax iocNoInit))
-                    return document;
-
                 var allEntries = CreateInitializerEntries(enumValues, useIndexerStyle: false);
                 var newInitList = CreateInlineInitializerExpression(allEntries);
-                var newCreation = iocNoInit.WithInitializer(newInitList);
-                return document.WithSyntaxRoot(root.ReplaceNode(iocNoInit, newCreation));
+
+                if (initializer.Value is ImplicitObjectCreationExpressionSyntax iocNoInit)
+                {
+                    var newCreation = iocNoInit.WithInitializer(newInitList);
+                    return document.WithSyntaxRoot(root.ReplaceNode(iocNoInit, newCreation));
+                }
+                else if (initializer.Value is ObjectCreationExpressionSyntax ocNoInit)
+                {
+                    var newCreation = ocNoInit.WithInitializer(newInitList);
+                    return document.WithSyntaxRoot(root.ReplaceNode(ocNoInit, newCreation));
+                }
+
+                return document;
             }
 
             // Case: existing initializer list – find and add missing entries
