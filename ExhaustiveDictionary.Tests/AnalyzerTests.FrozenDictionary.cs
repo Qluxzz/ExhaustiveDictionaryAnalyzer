@@ -29,7 +29,7 @@ public static class Program
 
     [Exhaustive]
     static FrozenDictionary<Color, string> ColorToHex =
-        new Dictionary<Color, string>() { Color.Red, ""#FF0000"" }.ToFrozenDictionary();
+        new Dictionary<Color, string>() { { Color.Red, ""#FF0000"" } }.ToFrozenDictionary();
 }
 ",
             expected

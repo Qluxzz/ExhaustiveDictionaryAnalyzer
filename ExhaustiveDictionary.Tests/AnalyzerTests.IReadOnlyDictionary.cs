@@ -29,7 +29,7 @@ public static class Program
 
     [Exhaustive]
     static IReadOnlyDictionary<Color, string> ColorToHex =
-        new Dictionary<Color, string>() { Color.Red, ""#FF0000"" };
+        new Dictionary<Color, string>() { { Color.Red, ""#FF0000"" } };
 }
 ",
             expected

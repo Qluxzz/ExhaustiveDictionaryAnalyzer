@@ -29,7 +29,7 @@ public static class Program
 
     [Exhaustive]
     static ImmutableDictionary<Color, string> ColorToHex =
-        new Dictionary<Color, string>() { Color.Red, ""#FF0000"" }.ToImmutableDictionary();
+        new Dictionary<Color, string>() { { Color.Red, ""#FF0000"" } }.ToImmutableDictionary();
 }
 ",
             expected
