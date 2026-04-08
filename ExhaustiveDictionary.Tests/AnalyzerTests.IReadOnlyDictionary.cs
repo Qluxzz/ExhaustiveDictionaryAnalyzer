@@ -9,7 +9,7 @@ namespace ExhaustiveDictionary.Tests;
 public sealed partial class AnalyzerTests
 {
     [TestMethod]
-    public async Task ReportsMissingValuesInReadOnlyDictionaryOnProperty()
+    public async Task ReportsMissingValuesInIReadOnlyDictionaryOnProperty()
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)

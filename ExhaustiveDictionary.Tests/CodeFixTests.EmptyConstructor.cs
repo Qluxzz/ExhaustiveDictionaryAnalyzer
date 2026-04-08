@@ -156,7 +156,7 @@ public static class Program
     }
 
     [TestMethod]
-    public async Task AddsMissingEnumValuesForExplicitTypeAndNoInitializer()
+    public async Task AddsMissingEnumValuesForExplicitTypeAndNoObjectCreation()
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)

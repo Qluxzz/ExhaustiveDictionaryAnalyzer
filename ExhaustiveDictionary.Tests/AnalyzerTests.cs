@@ -122,7 +122,7 @@ public static class Program
     }
 
     [TestMethod]
-    public async Task ReportsNoMissingValuesIfExhaustive2()
+    public async Task ReportsNoMissingValuesIfExhaustiveUsingIndexInitializerSyntax()
     {
         await TestAnalyzer(
             @"
@@ -146,7 +146,7 @@ public static class Program
     }
 
     [TestMethod]
-    public async Task ReportsNoMissingValuesIfExhaustive()
+    public async Task ReportsNoMissingValuesIfExhaustiveUsingElementInitializerSyntax()
     {
         await TestAnalyzer(
             @"
@@ -249,38 +249,20 @@ public static class Program
     }
 
     [TestMethod]
-    public async Task ReportsErrorIfAttributeUsedOnDictionaryWithNoEnumAsKey()
+    [DataRow("int")]
+    [DataRow("bool")]
+    [DataRow("string")]
+    [DataRow("char")]
+    [DataRow("object")]
+    public async Task ReportsErrorIfAttributeUsedOnDictionaryWithNoEnumAsKey(string keyType)
     {
+        // The error is reported on the variable name
+        const int columnStart = 33;
+        const int columnEnd = 43;
+
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.NotApplicableRule)
-            .WithSpan(11, 38, 11, 48);
-
-        await TestAnalyzer(
-            @"
-using System;
-using System.Collections.Generic;
-using ExhaustiveDictionary;
-
-public static class Program
-{
-    enum Color { Red, Green, Blue, };
-
-    [Exhaustive]
-    static Dictionary<string, Color> ColorToHex = new() {
-        { ""Red"", Color.Red }
-    };
-}
-",
-            expected
-        );
-    }
-
-    [TestMethod]
-    public async Task ReportsErrorIfAttributeUsedOnDictionaryWithNoEnumAsKey2()
-    {
-        var expected = Verify
-            .Diagnostic(EnumDictionaryAnalyzer.NotApplicableRule)
-            .WithSpan(9, 36, 9, 46);
+            .WithSpan(9, columnStart + keyType.Length, 9, columnEnd + keyType.Length);
 
         await TestAnalyzer(
             @"
@@ -291,11 +273,9 @@ using ExhaustiveDictionary;
 public static class Program
 {
     [Exhaustive]
-    static Dictionary<int, string> ColorToHex = new() {
-        { 10, ""hello"" }
-    };
+    static Dictionary<{KEYTYPE}, string> ColorToHex = new();
 }
-",
+".Replace("{KEYTYPE}", keyType),
             expected
         );
     }

@@ -12,7 +12,7 @@ namespace ExhaustiveDictionary.Tests;
 public sealed partial class CodeFixTests
 {
     [TestMethod]
-    public async Task AddsMissingEnumValuesWhenUsingCodeFix()
+    public async Task AddsMissingEnumValuesUsingElementInitializerSyntax()
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
@@ -51,7 +51,7 @@ public static class Program
     }
 
     [TestMethod]
-    public async Task AddsMissingEnumValuesUsingSameFormatWhenUsingCodeFix()
+    public async Task AddsMissingEnumValuesUsingIndexInitializerSyntax()
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
