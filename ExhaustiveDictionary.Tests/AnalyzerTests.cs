@@ -371,4 +371,23 @@ public static class Program
 
         await a.RunAsync(CancellationToken.None);
     }
+
+    private static async Task TestAnalyzerWithReferences(
+        string code,
+        DiagnosticResult expected,
+        params Type[] extraAssemblyTypes
+    )
+    {
+        var a = new CSharpAnalyzerTest<EnumDictionaryAnalyzer, DefaultVerifier>
+        {
+            TestCode = code,
+            ReferenceAssemblies = ReferenceAssemblies.Net.Net80.AddAssemblies([
+                typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty),
+            ]),
+        };
+
+        a.TestState.ExpectedDiagnostics.Add(expected);
+
+        await a.RunAsync(CancellationToken.None);
+    }
 }

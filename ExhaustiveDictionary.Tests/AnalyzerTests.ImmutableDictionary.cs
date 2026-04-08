@@ -13,7 +13,7 @@ public sealed partial class AnalyzerTests
     {
         var expected = Verify
             .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
-            .WithSpan(11, 38, 11, 48)
+            .WithSpan(12, 47, 12, 57)
             .WithArguments("ColorToHex", "Color.Green, Color.Blue");
 
         await TestAnalyzer(
