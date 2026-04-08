@@ -156,6 +156,45 @@ public static class Program
     }
 
     [TestMethod]
+    public async Task AddsMissingEnumValuesForExplicitTypeAndNoInitializer()
+    {
+        var expected = Verify
+            .Diagnostic(EnumDictionaryAnalyzer.ExhaustiveRule)
+            .WithSpan(11, 55, 11, 65)
+            .WithArguments("ColorToHex", "Color.Red, Color.Green, Color.Blue");
+
+        await TestCodeFix(
+            @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+
+    [Exhaustive]
+    private static readonly Dictionary<Color, string> ColorToHex = new Dictionary<Color, string>();
+}
+",
+            expected,
+            @"
+using System;
+using System.Collections.Generic;
+using ExhaustiveDictionary;
+
+public static class Program
+{
+    enum Color { Red, Green, Blue };
+
+    [Exhaustive]
+    private static readonly Dictionary<Color, string> ColorToHex = new Dictionary<Color, string>() { { Color.Red, """" }, { Color.Green, """" }, { Color.Blue, """" } };
+}
+"
+        );
+    }
+
+    [TestMethod]
     public async Task AddsMissingEnumValuesWhenUsingEmptyCollectionExpression()
     {
         var expected = Verify
