@@ -94,12 +94,10 @@ namespace ExhaustiveDictionary
             )
                 return;
 
-            if (
-                context
-                    .SemanticModel.GetSymbolInfo(typeSyntax)
-                    .Symbol?.OriginalDefinition.ToString()
-                != "System.Collections.Generic.Dictionary<TKey, TValue>"
-            )
+            var declaredTypeSymbol =
+                context.SemanticModel.GetSymbolInfo(typeSyntax).Symbol?.OriginalDefinition
+                as INamedTypeSymbol;
+            if (!IsDictionaryType(declaredTypeSymbol))
             {
                 context.ReportDiagnostic(
                     Diagnostic.Create(NotApplicableRule, identifier.GetLocation())
@@ -176,6 +174,24 @@ namespace ExhaustiveDictionary
                     )
                 );
             }
+        }
+
+        private static bool IsDictionaryType(INamedTypeSymbol typeSymbol)
+        {
+            if (typeSymbol == null)
+                return false;
+
+            if (IsDictionaryInterface(typeSymbol))
+                return true;
+
+            return typeSymbol.AllInterfaces.Any(i => IsDictionaryInterface(i.OriginalDefinition));
+        }
+
+        private static bool IsDictionaryInterface(ISymbol symbol)
+        {
+            var name = symbol.ToString();
+            return name == "System.Collections.Generic.IDictionary<TKey, TValue>"
+                || name == "System.Collections.Generic.IReadOnlyDictionary<TKey, TValue>";
         }
 
         private static string FormatEnumName(IFieldSymbol enumValue)

@@ -14,11 +14,25 @@ namespace ExhaustiveDictionary
             if (initializer == null)
                 return null;
 
-            if (initializer.Value is ImplicitObjectCreationExpressionSyntax ioc)
+            return ExtractFromExpression(initializer.Value);
+        }
+
+        private static InitializerExpressionSyntax ExtractFromExpression(
+            ExpressionSyntax expression
+        )
+        {
+            if (expression is ImplicitObjectCreationExpressionSyntax ioc)
                 return ioc.Initializer;
 
-            if (initializer.Value is ObjectCreationExpressionSyntax oc)
+            if (expression is ObjectCreationExpressionSyntax oc)
                 return oc.Initializer;
+
+            // Unwrap chained method calls like .ToFrozenDictionary() / .ToImmutableDictionary()
+            if (
+                expression is InvocationExpressionSyntax invocation
+                && invocation.Expression is MemberAccessExpressionSyntax memberAccess
+            )
+                return ExtractFromExpression(memberAccess.Expression);
 
             return null;
         }
