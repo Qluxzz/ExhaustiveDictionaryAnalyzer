@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis.Testing;
 using Verify = Microsoft.CodeAnalysis.CSharp.Testing.CSharpCodeFixVerifier<
     ExhaustiveDictionary.EnumDictionaryAnalyzer,
     ExhaustiveDictionary.AddMissingEnumValuesCodeFixProvider,
@@ -17,6 +18,7 @@ public sealed partial class AnalyzerTests
             .WithArguments("ColorToHex", "Color.Green, Color.Blue");
 
         await TestAnalyzerWithReferences(
+            ReferenceAssemblies.Net.Net80,
             @"
 using System;
 using System.Collections.Generic;

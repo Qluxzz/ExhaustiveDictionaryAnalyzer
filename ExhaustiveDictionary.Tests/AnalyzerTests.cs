@@ -354,12 +354,19 @@ public static class Program
         );
     }
 
-    private static async Task TestAnalyzer(string code, params DiagnosticResult[] diagnostics)
+    private static Task TestAnalyzer(string code, params DiagnosticResult[] diagnostics) =>
+        TestAnalyzerWithReferences(ReferenceAssemblies.Default, code, diagnostics);
+
+    private static async Task TestAnalyzerWithReferences(
+        ReferenceAssemblies referenceAssemblies,
+        string code,
+        params DiagnosticResult[] diagnostics
+    )
     {
         var a = new CSharpAnalyzerTest<EnumDictionaryAnalyzer, DefaultVerifier>
         {
             TestCode = code,
-            ReferenceAssemblies = ReferenceAssemblies.Default.AddAssemblies([
+            ReferenceAssemblies = referenceAssemblies.AddAssemblies([
                 typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty),
             ]),
         };
@@ -368,25 +375,6 @@ public static class Program
         {
             a.TestState.ExpectedDiagnostics.AddRange(diagnostics);
         }
-
-        await a.RunAsync(CancellationToken.None);
-    }
-
-    private static async Task TestAnalyzerWithReferences(
-        string code,
-        DiagnosticResult expected,
-        params Type[] extraAssemblyTypes
-    )
-    {
-        var a = new CSharpAnalyzerTest<EnumDictionaryAnalyzer, DefaultVerifier>
-        {
-            TestCode = code,
-            ReferenceAssemblies = ReferenceAssemblies.Net.Net80.AddAssemblies([
-                typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty),
-            ]),
-        };
-
-        a.TestState.ExpectedDiagnostics.Add(expected);
 
         await a.RunAsync(CancellationToken.None);
     }
