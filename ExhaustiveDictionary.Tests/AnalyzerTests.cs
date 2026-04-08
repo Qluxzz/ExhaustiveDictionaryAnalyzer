@@ -354,12 +354,19 @@ public static class Program
         );
     }
 
-    private static async Task TestAnalyzer(string code, params DiagnosticResult[] diagnostics)
+    private static Task TestAnalyzer(string code, params DiagnosticResult[] diagnostics) =>
+        TestAnalyzerWithReferences(ReferenceAssemblies.Default, code, diagnostics);
+
+    private static async Task TestAnalyzerWithReferences(
+        ReferenceAssemblies referenceAssemblies,
+        string code,
+        params DiagnosticResult[] diagnostics
+    )
     {
         var a = new CSharpAnalyzerTest<EnumDictionaryAnalyzer, DefaultVerifier>
         {
             TestCode = code,
-            ReferenceAssemblies = ReferenceAssemblies.Default.AddAssemblies([
+            ReferenceAssemblies = referenceAssemblies.AddAssemblies([
                 typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty),
             ]),
         };

@@ -39,4 +39,4 @@ Here the rule will complain because we have added `Color.Red` twice
 
 ### EXHAUSTIVEDICT0003
 
-Attribute was placed on invalid object, it can only be used on a Dictionary where the key is an Enum.
+Attribute was placed on invalid object, it can only be used on a dictionary type (Dictionary, IReadOnlyDictionary, ImmutableDictionary, FrozenDictionary) where the key is an Enum.
