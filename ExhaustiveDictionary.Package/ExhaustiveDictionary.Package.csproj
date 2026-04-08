@@ -8,7 +8,7 @@
 
   <PropertyGroup>
     <PackageId>ExhaustiveDictionary.Analyzer</PackageId>
-    <PackageVersion>1.0.5.0</PackageVersion>
+    <PackageVersion>1.0.6.0</PackageVersion>
     <Authors>Qluxzz</Authors>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -16,7 +16,7 @@
     <PackageProjectUrl>https://github.com/Qluxzz/ExhaustiveDictionaryAnalyzer</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Qluxzz/ExhaustiveDictionaryAnalyzer</RepositoryUrl>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <Description>Analyzer that ensures that dictionary with enum key type sets values for all defined enum keys when decorated with a [Exhaustive] attribute</Description>
+    <Description>Analyzer that ensures that dictionary types with an enum key sets values for all defined enum keys when decorated with the [Exhaustive] attribute</Description>
     <PackageTags>exhaustive, dictionary, analyzers, codefixes</PackageTags>
     <DevelopmentDependency>true</DevelopmentDependency>
     <NoPackageAnalysis>true</NoPackageAnalysis>
