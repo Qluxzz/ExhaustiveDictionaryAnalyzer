@@ -346,10 +346,12 @@ public static class Program
         var a = new CSharpAnalyzerTest<EnumDictionaryAnalyzer, DefaultVerifier>
         {
             TestCode = code,
-            ReferenceAssemblies = referenceAssemblies.AddAssemblies([
-                typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty),
-            ]),
+            ReferenceAssemblies = referenceAssemblies,
         };
+
+        // Provide the [Exhaustive] attribute the same way consumers get it: as a source
+        // file compiled into the test compilation (see ExhaustiveAttributeSource).
+        a.TestState.Sources.Add(("ExhaustiveAttribute.cs", ExhaustiveAttributeSource.Value));
 
         if (diagnostics.Length > 0)
         {

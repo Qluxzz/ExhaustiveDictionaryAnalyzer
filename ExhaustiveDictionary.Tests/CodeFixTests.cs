@@ -97,12 +97,16 @@ public static class Program
             DefaultVerifier
         >
         {
-            ReferenceAssemblies = ReferenceAssemblies.Default.AddAssemblies([
-                typeof(ExhaustiveAttribute).Assembly.Location.Replace(".dll", string.Empty),
-            ]),
+            ReferenceAssemblies = ReferenceAssemblies.Default,
             TestCode = before,
             FixedCode = after,
         };
+
+        // Provide the [Exhaustive] attribute as a source file compiled into the test
+        // compilation, mirroring how consumers receive it (see ExhaustiveAttributeSource).
+        // The fix never touches this file, so the fixed state must contain it unchanged.
+        a.TestState.Sources.Add(("ExhaustiveAttribute.cs", ExhaustiveAttributeSource.Value));
+        a.FixedState.Sources.Add(("ExhaustiveAttribute.cs", ExhaustiveAttributeSource.Value));
 
         a.TestState.ExpectedDiagnostics.AddRange(diagnostic);
 

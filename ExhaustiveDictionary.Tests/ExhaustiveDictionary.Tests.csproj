@@ -20,8 +20,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Embed the exact attribute source that ships in the package so the tests compile
+         against the real definition (single source of truth, no drift). It is injected
+         into each in-memory test compilation by ExhaustiveAttributeSource. -->
+    <EmbeddedResource
+      Include="..\ExhaustiveDictionary.Attribute\ExhaustiveAttribute.cs"
+      LogicalName="ExhaustiveAttribute.cs"
+    />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ExhaustiveDictionary\ExhaustiveDictionary.csproj" />
     <ProjectReference Include="..\ExhaustiveDictionary.CodeFixes\ExhaustiveDictionary.CodeFixes.csproj" />
-    <ProjectReference Include="..\ExhaustiveDictionary.Attribute\ExhaustiveDictionary.Attribute.csproj" />
   </ItemGroup>
 </Project>
